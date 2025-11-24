@@ -1,0 +1,24 @@
+# Use Python slim base
+FROM python:3.12-slim
+
+# System dependencies
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    python3-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Set working directory
+WORKDIR /app
+
+# Copy files into container
+COPY requirements.txt .
+COPY app.py .
+
+# Install Python dependencies
+RUN pip install --no-cache-dir flask
+
+# Expose Flask port
+EXPOSE 5000
+
+# Default command to run the app
+CMD ["python", "app.py"]

@@ -1,0 +1,21 @@
+Flask==3.0.2
+gunicorn==20.1.0
+
+# DLP Core Tools
+python-magic==0.4.27
+PyYAML==6.0.1
+regex==2023.12.25
+tldextract==5.1.2
+
+# AI / ML Light Version
+numpy==1.26.4
+pandas==2.2.0
+scikit-learn==1.4.0
+joblib==1.5.2
+
+# Utility
+requests==2.31.0
+python-dateutil==2.9.0
+watchdog==3.0.0
+rich==13.7.1
+
