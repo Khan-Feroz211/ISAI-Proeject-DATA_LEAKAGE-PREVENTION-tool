@@ -1,70 +1,177 @@
-from flask import Flask, request, render_template_string
-import subprocess, sys
-from pathlib import Path
-
-DEFAULT_PATH = Path("./requirements.txt")
+from flask import Flask, render_template, request, jsonify
+import os
+import json
+from datetime import datetime
 
 app = Flask(__name__)
-req_path = DEFAULT_PATH
+app.secret_key = 'dlp-secure-key-2024'
 
-def load_requirements():
-    if not req_path.exists():
-        return []
-    with req_path.open() as f:
-        return [line.strip() for line in f if line.strip()]
+# Simple DLP functionality
+class SimpleDLP:
+    @staticmethod
+    def scan_file(filepath):
+        """Basic file scanning"""
+        try:
+            if not os.path.exists(filepath):
+                return {'error': 'File not found'}
+            
+            stat = os.stat(filepath)
+            return {
+                'path': filepath,
+                'size': stat.st_size,
+                'modified': datetime.fromtimestamp(stat.st_mtime).isoformat(),
+                'sensitive': False,
+                'issues': []
+            }
+        except Exception as e:
+            return {'error': str(e), 'path': filepath}
 
-def save_requirements(packages):
-    req_path.write_text("\n".join(packages))
+    @staticmethod
+    def scan_directory(path):
+        """Scan directory"""
+        results = {
+            'path': path,
+            'scanned_at': datetime.now().isoformat(),
+            'total_files': 0,
+            'sensitive_files': 0,
+            'findings': []
+        }
+        
+        try:
+            for root, dirs, files in os.walk(path):
+                for file in files[:10]:  # Limit to 10 files
+                    filepath = os.path.join(root, file)
+                    file_result = SimpleDLP.scan_file(filepath)
+                    results['total_files'] += 1
+                    
+                    if 'error' not in file_result:
+                        results['findings'].append(file_result)
+                
+                break  # Only top level
+                
+        except Exception as e:
+            results['error'] = str(e)
+            
+        return results
 
-def install_packages(packages):
-    if packages:
-        cmd = [sys.executable, "-m", "pip", "install"] + packages
-        subprocess.run(cmd)
+# Routes
+@app.route('/')
+def dashboard():
+    return '''
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>DLP Security Tool</title>
+        <style>
+            body { font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; }
+            .card { background: white; padding: 20px; margin: 10px 0; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+            .btn { background: #007bff; color: white; padding: 10px 15px; border: none; border-radius: 4px; cursor: pointer; margin: 5px; }
+            .nav { display: flex; gap: 10px; margin-bottom: 20px; }
+            .nav a { padding: 10px; background: white; text-decoration: none; border-radius: 4px; color: #333; }
+        </style>
+    </head>
+    <body>
+        <h1>🔐 DLP Security Scanner</h1>
+        
+        <div class="nav">
+            <a href="/">Dashboard</a>
+            <a href="/scan">Scanner</a>
+            <a href="/monitor">Monitor</a>
+        </div>
+        
+        <div class="card">
+            <h3>Quick Actions</h3>
+            <button class="btn" onclick="scanHome()">Scan Home Directory</button>
+            <button class="btn" onclick="scanCurrent()">Scan Current Folder</button>
+        </div>
+        
+        <div class="card">
+            <h3>Scan Results</h3>
+            <div id="results">No scans performed yet.</div>
+        </div>
 
-TEMPLATE = """
-<!doctype html>
-<title>DLP Requirements Editor</title>
-<h2>DLP Requirements Editor</h2>
+        <script>
+            function scanHome() {
+                fetch('/api/scan', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({path: '~'})
+                })
+                .then(r => r.json())
+                .then(data => {
+                    document.getElementById('results').innerHTML = 
+                        `<h4>Scan Results:</h4>
+                         <p>Files scanned: ${data.total_files}</p>
+                         <pre>${JSON.stringify(data.findings, null, 2)}</pre>`;
+                });
+            }
+            
+            function scanCurrent() {
+                fetch('/api/scan', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({path: '.'})
+                })
+                .then(r => r.json())
+                .then(data => {
+                    document.getElementById('results').innerHTML = 
+                        `<h4>Scan Results:</h4>
+                         <p>Files scanned: ${data.total_files}</p>
+                         <pre>${JSON.stringify(data.findings, null, 2)}</pre>`;
+                });
+            }
+        </script>
+    </body>
+    </html>
+    '''
 
-<form method="post" action="/add">
-  Add package: <input name="package">
-  <input type="submit" value="Add">
-</form>
+@app.route('/scan')
+def scan_page():
+    return '''
+    <div style="margin: 20px;">
+        <h2>File Scanner</h2>
+        <input type="text" id="scanPath" placeholder="/path/to/scan" value=".">
+        <button onclick="startScan()">Start Scan</button>
+        <div id="scanResults"></div>
+    </div>
+    <script>
+        function startScan() {
+            const path = document.getElementById('scanPath').value;
+            fetch('/api/scan', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({path: path})
+            })
+            .then(r => r.json())
+            .then(data => {
+                document.getElementById('scanResults').innerHTML = 
+                    '<pre>' + JSON.stringify(data, null, 2) + '</pre>';
+            });
+        }
+    </script>
+    '''
 
-<form method="post" action="/remove">
-  <select name="remove_pkg" multiple size="10">
-    {% for pkg in packages %}
-      <option value="{{ pkg }}">{{ pkg }}</option>
-    {% endfor %}
-  </select>
-  <input type="submit" value="Remove">
-</form>
+@app.route('/monitor')
+def monitor_page():
+    return '''
+    <div style="margin: 20px;">
+        <h2>File Monitoring</h2>
+        <p>File monitoring dashboard coming soon...</p>
+    </div>
+    '''
 
-{% if message %}
-<p><b>{{ message }}</b></p>
-{% endif %}
-"""
+# API Routes
+@app.route('/api/scan', methods=['POST'])
+def api_scan():
+    data = request.json
+    path = data.get('path', '.')
+    
+    # Expand home directory
+    if path == '~':
+        path = os.path.expanduser('~')
+    
+    results = SimpleDLP.scan_directory(path)
+    return jsonify(results)
 
-@app.route("/")
-def home():
-    return render_template_string(TEMPLATE, packages=load_requirements(), message=None)
-
-@app.route("/add", methods=["POST"])
-def add():
-    pkg = request.form.get("package", "").strip()
-    pkgs = load_requirements()
-    if pkg:
-        pkgs.append(pkg)
-        save_requirements(pkgs)
-    return render_template_string(TEMPLATE, packages=pkgs, message=f"Added: {pkg}")
-
-@app.route("/remove", methods=["POST"])
-def remove():
-    to_remove = request.form.getlist("remove_pkg")
-    pkgs = [p for p in load_requirements() if p not in to_remove]
-    save_requirements(pkgs)
-    return render_template_string(TEMPLATE, packages=pkgs, message="Removed selected.")
-
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000)
-
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=5000, debug=False)

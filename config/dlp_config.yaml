@@ -1,0 +1,48 @@
+app:
+  name: "DLP Linux Tool"
+  version: "1.0.0"
+  verbose: true
+
+scan:
+  target_path: "/data/scan"
+  max_file_size: 104857600  # 100MB in bytes
+  enabled_file_types: [".txt", ".pdf", ".doc", ".docx", ".xls", ".xlsx", ".csv", ".log"]
+  excluded_directories: [".git", "node_modules", "__pycache__"]
+
+monitor:
+  watch_directories: ["/home", "/var/www", "/opt"]
+  network_monitoring: true
+  scan_interval: 30
+  real_time_scanning: true
+
+patterns:
+  credit_card: "\b\d{4}[- ]?\d{4}[- ]?\d{4}[- ]?\d{4}\b"
+  ssn: "\b\d{3}-\d{2}-\d{4}\b"
+  email: "\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b"
+  phone: "\b\d{3}[-.]?\d{3}[-.]?\d{4}\b"
+  api_key: "\b(?:sk-|AKIA|ghp_)[a-zA-Z0-9]{20,40}\b"
+
+ai:
+  model_name: "distilbert-base-uncased"
+  model_path: "./models/"
+  confidence_threshold: 0.75
+  training_data_path: "./data/training/"
+  use_gpu: true
+
+reporting:
+  output_format: "json"  # json, html, csv
+  output_path: "./data/output/"
+  generate_summary: true
+  save_evidence: true
+
+alerts:
+  enabled: true
+  confidence_threshold: 0.85
+  email_alerts: false
+  email_recipient: "admin@company.com"
+  console_alerts: true
+  log_alerts: true
+
+database:
+  type: "sqlite"
+  path: "./data/dlp_database.db"
