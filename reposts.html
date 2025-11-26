@@ -1,0 +1,226 @@
+# Create reports.html
+cat > templates/reports.html << 'HTML_EOF'
+{% extends "base.html" %}
+
+{% block title %}Scan Reports - DLP Security Scanner{% endblock %}
+
+{% block content %}
+<div class="reports-page">
+    <div class="header">
+        <h1>📋 Scan Reports</h1>
+        <p>Historical scan data and security analysis</p>
+    </div>
+
+    <div class="card">
+        <div class="reports-header">
+            <h2>Recent Scan History</h2>
+            <button class="btn" onclick="exportReports()">
+                📊 Export All Reports
+            </button>
+        </div>
+        
+        <div id="reportsList" class="reports-container">
+            {% if scans %}
+                {% for scan in scans %}
+                <div class="report-item">
+                    <div class="report-header">
+                        <div class="report-title">
+                            <span class="report-icon">🔍</span>
+                            Scan of {{ scan.path }}
+                        </div>
+                        <span class="report-time">{{ scan.scanned_at }}</span>
+                    </div>
+                    
+                    <div class="report-stats">
+                        <div class="stat">
+                            <span class="stat-label">Total Files</span>
+                            <span class="stat-value">{{ scan.total_files }}</span>
+                        </div>
+                        <div class="stat">
+                            <span class="stat-label">Sensitive Files</span>
+                            <span class="stat-value risk-high">{{ scan.sensitive_files }}</span>
+                        </div>
+                        <div class="stat">
+                            <span class="stat-label">Critical Risks</span>
+                            <span class="stat-value risk-critical">{{ scan.critical_risk_files }}</span>
+                        </div>
+                        <div class="stat">
+                            <span class="stat-label">High Risks</span>
+                            <span class="stat-value risk-high">{{ scan.high_risk_files }}</span>
+                        </div>
+                    </div>
+                    
+                    <div class="report-actions">
+                        <button class="btn btn-outline" onclick="viewReport({{ loop.index0 }})">
+                            👁️ View Details
+                        </button>
+                        <button class="btn btn-outline" onclick="downloadReport({{ loop.index0 }})">
+                            📥 Download
+                        </button>
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="no-reports">
+                    <div class="no-reports-icon">📊</div>
+                    <div class="no-reports-text">No scan reports available</div>
+                    <div class="no-reports-subtext">Run some scans to generate reports</div>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script>
+function viewReport(index) {
+    fetch('/api/reports/' + index)
+    .then(r => r.json())
+    .then(data => {
+        const summary = `
+Scan Report Details:
+• Path: ${data.path}
+• Time: ${data.scanned_at}
+• Files Scanned: ${data.total_files}
+• Sensitive Files: ${data.sensitive_files}
+• Critical Risks: ${data.critical_risk_files}
+• High Risks: ${data.high_risk_files}
+        `.trim();
+        
+        alert(summary);
+    })
+    .catch(err => {
+        alert('Error loading report: ' + err);
+    });
+}
+
+function downloadReport(index) {
+    alert('Download feature would generate a detailed PDF/JSON report for scan #' + index);
+}
+
+function exportReports() {
+    alert('Export feature would generate a comprehensive report of all scans in PDF/JSON format');
+}
+</script>
+
+<style>
+.reports-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+    gap: 15px;
+}
+
+.reports-container {
+    display: grid;
+    gap: 20px;
+}
+
+.report-item {
+    background: white;
+    padding: 25px;
+    border-radius: 10px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    border-left: 4px solid #007bff;
+}
+
+.report-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.report-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 1.2em;
+    font-weight: 600;
+}
+
+.report-icon {
+    font-size: 1.3em;
+}
+
+.report-time {
+    color: #666;
+    font-size: 0.9em;
+    font-family: monospace;
+}
+
+.report-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.stat {
+    text-align: center;
+    padding: 15px;
+    background: #f8f9fa;
+    border-radius: 6px;
+}
+
+.stat-label {
+    display: block;
+    color: #666;
+    font-size: 0.9em;
+    margin-bottom: 5px;
+}
+
+.stat-value {
+    display: block;
+    font-size: 1.5em;
+    font-weight: bold;
+}
+
+.report-actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.btn-outline {
+    background: transparent;
+    border: 2px solid #007bff;
+    color: #007bff;
+}
+
+.btn-outline:hover {
+    background: #007bff;
+    color: white;
+}
+
+.no-reports {
+    text-align: center;
+    padding: 60px 20px;
+}
+
+.no-reports-icon {
+    font-size: 3em;
+    margin-bottom: 15px;
+    opacity: 0.5;
+}
+
+.no-reports-text {
+    font-size: 1.3em;
+    color: #666;
+    margin-bottom: 8px;
+    font-weight: 500;
+}
+
+.no-reports-subtext {
+    color: #999;
+    font-style: italic;
+}
+
+.risk-critical { color: #dc3545; }
+.risk-high { color: #fd7e14; }
+</style>
+{% endblock %}
+HTML_EOF

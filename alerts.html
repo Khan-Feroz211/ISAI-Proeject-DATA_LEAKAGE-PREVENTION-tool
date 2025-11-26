@@ -1,0 +1,188 @@
+# Create alerts.html
+cat > templates/alerts.html << 'HTML_EOF'
+{% extends "base.html" %}
+
+{% block title %}Security Alerts - DLP Security Scanner{% endblock %}
+
+{% block content %}
+<div class="alerts-page">
+    <div class="header">
+        <h1>🚨 Security Alerts</h1>
+        <p>Critical security notifications and findings</p>
+    </div>
+
+    <div class="card">
+        <div class="alerts-header">
+            <h2>Recent Security Alerts ({{ alerts|length }} total)</h2>
+            <button class="btn btn-danger" onclick="clearAlerts()">
+                🗑️ Clear All Alerts
+            </button>
+        </div>
+        
+        <div id="alertsList" class="alerts-container">
+            {% if alerts %}
+                {% for alert in alerts %}
+                <div class="alert-item alert-{{ alert.level }}">
+                    <div class="alert-icon">
+                        {% if alert.level == 'critical' %}🚨
+                        {% elif alert.level == 'high' %}⚠️
+                        {% else %}ℹ️{% endif %}
+                    </div>
+                    <div class="alert-content">
+                        <div class="alert-header">
+                            <span class="alert-level">{{ alert.level|upper }}</span>
+                            <span class="alert-time">{{ alert.timestamp }}</span>
+                        </div>
+                        <div class="alert-message">{{ alert.message }}</div>
+                        <div class="alert-path">{{ alert.path }}</div>
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="no-alerts">
+                    <div class="no-alerts-icon">✅</div>
+                    <div class="no-alerts-text">No security alerts found</div>
+                    <div class="no-alerts-subtext">All systems are secure!</div>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script>
+function clearAlerts() {
+    if (confirm('Are you sure you want to clear all security alerts? This action cannot be undone.')) {
+        fetch('/api/alerts/clear', {method: 'POST'})
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            }
+        })
+        .catch(err => {
+            alert('Error clearing alerts: ' + err);
+        });
+    }
+}
+</script>
+
+<style>
+.alerts-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+    gap: 15px;
+}
+
+.alerts-container {
+    max-height: 600px;
+    overflow-y: auto;
+}
+
+.alert-item {
+    display: flex;
+    gap: 15px;
+    padding: 20px;
+    margin: 15px 0;
+    border-radius: 8px;
+    border-left: 4px solid;
+    background: white;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.alert-critical {
+    border-color: #dc3545;
+    background: linear-gradient(135deg, #ffe6e6, #fff);
+}
+
+.alert-high {
+    border-color: #fd7e14;
+    background: linear-gradient(135deg, #fff3e6, #fff);
+}
+
+.alert-medium {
+    border-color: #ffc107;
+    background: linear-gradient(135deg, #fff9e6, #fff);
+}
+
+.alert-icon {
+    font-size: 1.5em;
+    display: flex;
+    align-items: flex-start;
+    padding-top: 2px;
+}
+
+.alert-content {
+    flex: 1;
+}
+
+.alert-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.alert-level {
+    font-weight: bold;
+    text-transform: uppercase;
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 0.8em;
+}
+
+.alert-critical .alert-level { background: #dc3545; color: white; }
+.alert-high .alert-level { background: #fd7e14; color: white; }
+.alert-medium .alert-level { background: #ffc107; color: black; }
+
+.alert-time {
+    color: #666;
+    font-size: 0.9em;
+    font-family: monospace;
+}
+
+.alert-message {
+    font-size: 1.1em;
+    font-weight: 500;
+    margin-bottom: 8px;
+    line-height: 1.4;
+}
+
+.alert-path {
+    color: #666;
+    font-size: 0.9em;
+    font-family: monospace;
+    background: rgba(0,0,0,0.05);
+    padding: 4px 8px;
+    border-radius: 4px;
+    display: inline-block;
+}
+
+.no-alerts {
+    text-align: center;
+    padding: 60px 20px;
+}
+
+.no-alerts-icon {
+    font-size: 3em;
+    margin-bottom: 15px;
+}
+
+.no-alerts-text {
+    font-size: 1.3em;
+    color: #28a745;
+    margin-bottom: 8px;
+    font-weight: 500;
+}
+
+.no-alerts-subtext {
+    color: #666;
+    font-style: italic;
+}
+</style>
+{% endblock %}
+HTML_EOF

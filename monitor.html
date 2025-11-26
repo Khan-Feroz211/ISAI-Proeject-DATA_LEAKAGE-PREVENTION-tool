@@ -1,0 +1,277 @@
+cat > templates/monitor.html << 'HTML_EOF'
+{% extends "base.html" %}
+
+{% block title %}File Monitor - DLP Security Scanner{% endblock %}
+
+{% block content %}
+<div class="monitor-page">
+    <div class="header">
+        <h1>👁️ File Monitoring</h1>
+        <p>Real-time file system monitoring and change detection</p>
+    </div>
+
+    <div class="card">
+        <h2>Monitoring Controls</h2>
+        <div class="monitor-controls">
+            <button class="btn btn-success" onclick="startMonitoring()">
+                ▶️ Start Monitoring
+            </button>
+            <button class="btn btn-danger" onclick="stopMonitoring()">
+                ⏹️ Stop Monitoring
+            </button>
+            <span id="monitorStatus" class="status-badge status-inactive">
+                Not Monitoring
+            </span>
+        </div>
+    </div>
+
+    <div class="card">
+        <h2>Add Directory to Monitor</h2>
+        <div class="add-monitor">
+            <input type="text" id="monitorPath" placeholder="/path/to/monitor" value="/home" class="path-input">
+            <button class="btn" onclick="addMonitorPath()">
+                ➕ Add to Monitoring
+            </button>
+        </div>
+    </div>
+
+    <div class="card">
+        <h2>Monitored Directories</h2>
+        <div id="monitoredDirs" class="monitored-list">
+            <div class="no-directories">No directories currently being monitored</div>
+        </div>
+    </div>
+
+    <div class="card">
+        <h2>File Activity Log</h2>
+        <div id="activityLog" class="activity-log">
+            <div class="no-activity">No file activity detected yet</div>
+        </div>
+    </div>
+</div>
+
+<script>
+let monitoringInterval = null;
+let activityCount = 0;
+
+function startMonitoring() {
+    document.getElementById('monitorStatus').textContent = 'Monitoring Active';
+    document.getElementById('monitorStatus').className = 'status-badge status-active';
+    
+    monitoringInterval = setInterval(() => {
+        activityCount++;
+        const log = document.getElementById('activityLog');
+        const activities = [
+            {type: 'modified', icon: '📄', message: 'document.txt modified', path: '/home/user/documents'},
+            {type: 'created', icon: '🆕', message: 'newfile.pdf created', path: '/home/user/downloads'},
+            {type: 'permission', icon: '⚠️', message: 'config.conf permissions changed', path: '/etc'},
+            {type: 'created', icon: '📁', message: 'projects directory created', path: '/home/user'},
+            {type: 'deleted', icon: '🗑️', message: 'tempfile.tmp deleted', path: '/tmp'}
+        ];
+        const randomActivity = activities[Math.floor(Math.random() * activities.length)];
+        const timestamp = new Date().toLocaleTimeString();
+        
+        const entry = document.createElement('div');
+        entry.className = `activity-entry activity-${randomActivity.type}`;
+        entry.innerHTML = `
+            <div class="activity-header">
+                <span class="activity-icon">${randomActivity.icon}</span>
+                <span class="activity-time">[${timestamp}]</span>
+            </div>
+            <div class="activity-message">${randomActivity.message}</div>
+            <div class="activity-path">${randomActivity.path}</div>
+        `;
+        
+        if (log.firstChild && log.firstChild.className === 'no-activity') {
+            log.removeChild(log.firstChild);
+        }
+        log.insertBefore(entry, log.firstChild);
+        
+        // Keep only last 20 activities
+        while (log.children.length > 20) {
+            log.removeChild(log.lastChild);
+        }
+    }, 3000);
+}
+
+function stopMonitoring() {
+    document.getElementById('monitorStatus').textContent = 'Not Monitoring';
+    document.getElementById('monitorStatus').className = 'status-badge status-inactive';
+    if (monitoringInterval) {
+        clearInterval(monitoringInterval);
+        monitoringInterval = null;
+    }
+}
+
+function addMonitorPath() {
+    const path = document.getElementById('monitorPath').value;
+    if (!path) {
+        alert('Please enter a path');
+        return;
+    }
+    
+    const dirsList = document.getElementById('monitoredDirs');
+    if (dirsList.firstChild && dirsList.firstChild.className === 'no-directories') {
+        dirsList.removeChild(dirsList.firstChild);
+    }
+    
+    const newItem = document.createElement('div');
+    newItem.className = 'monitored-item';
+    newItem.innerHTML = `
+        <span class="dir-icon">📁</span>
+        <span class="dir-path">${path}</span>
+        <button class="btn-remove" onclick="this.parentElement.remove()">🗑️</button>
+    `;
+    dirsList.appendChild(newItem);
+    
+    // Clear the input
+    document.getElementById('monitorPath').value = '';
+}
+
+// Initialize with some sample monitored directories
+window.onload = function() {
+    const sampleDirs = ['/home', '/etc', '/var/log'];
+    const dirsList = document.getElementById('monitoredDirs');
+    dirsList.innerHTML = '';
+    sampleDirs.forEach(dir => {
+        const item = document.createElement('div');
+        item.className = 'monitored-item';
+        item.innerHTML = `
+            <span class="dir-icon">📁</span>
+            <span class="dir-path">${dir}</span>
+            <button class="btn-remove" onclick="this.parentElement.remove()">🗑️</button>
+        `;
+        dirsList.appendChild(item);
+    });
+};
+</script>
+
+<style>
+.monitor-controls {
+    display: flex;
+    gap: 15px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.status-badge {
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-weight: bold;
+    font-size: 0.9em;
+}
+
+.status-active {
+    background: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}
+
+.status-inactive {
+    background: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+}
+
+.add-monitor {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.monitored-list {
+    min-height: 100px;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.monitored-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 15px;
+    background: #f8f9fa;
+    margin: 5px 0;
+    border-radius: 6px;
+    border-left: 3px solid #007bff;
+}
+
+.dir-icon {
+    font-size: 1.2em;
+}
+
+.dir-path {
+    flex: 1;
+    font-family: monospace;
+    font-size: 0.9em;
+}
+
+.btn-remove {
+    background: #dc3545;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 5px 10px;
+    cursor: pointer;
+    font-size: 0.8em;
+}
+
+.activity-log {
+    max-height: 400px;
+    overflow-y: auto;
+    background: #f8f9fa;
+    border-radius: 6px;
+    padding: 15px;
+}
+
+.activity-entry {
+    padding: 12px;
+    margin: 8px 0;
+    background: white;
+    border-radius: 6px;
+    border-left: 4px solid;
+}
+
+.activity-modified { border-color: #ffc107; }
+.activity-created { border-color: #28a745; }
+.activity-deleted { border-color: #dc3545; }
+.activity-permission { border-color: #fd7e14; }
+
+.activity-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 5px;
+}
+
+.activity-icon {
+    font-size: 1.1em;
+}
+
+.activity-time {
+    color: #666;
+    font-size: 0.8em;
+    font-family: monospace;
+}
+
+.activity-message {
+    font-weight: 500;
+    margin-bottom: 3px;
+}
+
+.activity-path {
+    color: #666;
+    font-size: 0.8em;
+    font-family: monospace;
+}
+
+.no-directories, .no-activity {
+    text-align: center;
+    padding: 40px;
+    color: #666;
+    font-style: italic;
+}
+</style>
+{% endblock %}
+HTML_EOF

@@ -1,0 +1,360 @@
+# Create dashboard.html
+cat > templates/dashboard.html << 'HTML_EOF'
+{% extends "base.html" %}
+
+{% block title %}Dashboard - DLP Security Scanner{% endblock %}
+
+{% block content %}
+<div class="dashboard">
+    <div class="header">
+        <h1>🔐 DLP Security Dashboard</h1>
+        <p>Comprehensive Data Loss Prevention Monitoring</p>
+    </div>
+
+    <!-- Statistics Grid -->
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-icon">📊</div>
+            <div class="stat-number">{{ stats.total_scans }}</div>
+            <div class="stat-label">Total Scans</div>
+        </div>
+        <div class="stat-card critical">
+            <div class="stat-icon">🚨</div>
+            <div class="stat-number">{{ stats.risk_summary.critical }}</div>
+            <div class="stat-label">Critical Risks</div>
+        </div>
+        <div class="stat-card high">
+            <div class="stat-icon">⚠️</div>
+            <div class="stat-number">{{ stats.risk_summary.high }}</div>
+            <div class="stat-label">High Risks</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon">📁</div>
+            <div class="stat-number">{{ stats.total_files_scanned }}</div>
+            <div class="stat-label">Files Scanned</div>
+        </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="card">
+        <h2>🚀 Quick Security Scans</h2>
+        <div class="action-buttons">
+            <button class="btn btn-primary" onclick="performScan('quick', '~')">
+                🏠 Quick Home Scan
+            </button>
+            <button class="btn btn-warning" onclick="performScan('deep', '~')">
+                🔍 Deep Home Scan
+            </button>
+            <button class="btn btn-danger" onclick="performScan('quick', '/')">
+                💻 System Scan
+            </button>
+            <button class="btn btn-success" onclick="performScan('quick', '.')">
+                📂 Current Directory
+            </button>
+        </div>
+    </div>
+
+    <!-- Recent Alerts -->
+    <div class="card">
+        <h2>🚨 Recent Security Alerts</h2>
+        <div class="alerts-list">
+            {% if recent_alerts %}
+                {% for alert in recent_alerts %}
+                <div class="alert alert-{{ alert.level }}">
+                    <div class="alert-header">
+                        <span class="alert-level">{{ alert.level|upper }}</span>
+                        <span class="alert-time">{{ alert.timestamp }}</span>
+                    </div>
+                    <div class="alert-message">{{ alert.message }}</div>
+                    <div class="alert-path">{{ alert.path }}</div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="no-alerts">✅ No recent security alerts</div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Recent Scans -->
+    <div class="card">
+        <h2>📋 Recent Scans</h2>
+        <div class="scans-list">
+            {% if recent_scans %}
+                {% for scan in recent_scans %}
+                <div class="scan-item">
+                    <div class="scan-header">
+                        <strong>{{ scan.path }}</strong>
+                        <span class="scan-time">{{ scan.scanned_at }}</span>
+                    </div>
+                    <div class="scan-stats">
+                        Files: {{ scan.total_files }} | 
+                        Sensitive: <span class="risk-high">{{ scan.sensitive_files }}</span> |
+                        Critical: <span class="risk-critical">{{ scan.critical_risk_files }}</span>
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="no-scans">No scans performed yet</div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Scan Results -->
+    <div class="card">
+        <h2>📊 Scan Results</h2>
+        <div id="scanResults">
+            <div class="no-results">Run a scan to see results here...</div>
+        </div>
+    </div>
+</div>
+
+<script>
+function performScan(type, path) {
+    showLoading(`Starting ${type} scan of ${path}...`);
+    
+    fetch('/api/scan', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({path: path, scan_type: type})
+    })
+    .then(r => r.json())
+    .then(data => {
+        displayScanResults(data);
+        // Reload page to update stats after 2 seconds
+        setTimeout(() => location.reload(), 2000);
+    })
+    .catch(err => {
+        document.getElementById('scanResults').innerHTML = 
+            '<div class="error">Error: ' + err + '</div>';
+    });
+}
+
+function showLoading(message) {
+    document.getElementById('scanResults').innerHTML = 
+        `<div class="loading">
+            <div class="loading-spinner"></div>
+            <div>${message}</div>
+        </div>`;
+}
+
+function displayScanResults(data) {
+    let html = `<div class="scan-result-header">
+        <h3>Scan Results: ${data.path}</h3>
+        <p><strong>Scanned:</strong> ${data.scanned_at}</p>
+        <p><strong>Files:</strong> ${data.total_files} | 
+           <strong>Sensitive:</strong> <span class="risk-high">${data.sensitive_files}</span> | 
+           <strong>Critical:</strong> <span class="risk-critical">${data.critical_risk_files}</span>
+        </p>
+    </div>`;
+
+    if (data.findings && data.findings.length > 0) {
+        html += `<div class="findings-list">`;
+        data.findings.forEach(item => {
+            if (item.issues && item.issues.length > 0) {
+                html += `<div class="finding finding-${item.risk_level}">
+                    <div class="finding-header">
+                        <strong>📄 ${item.name}</strong>
+                        <span class="file-size">${item.size_readable}</span>
+                    </div>
+                    <div class="finding-path">${item.path}</div>`;
+                item.issues.forEach(issue => {
+                    html += `<div class="issue issue-${issue.risk}">
+                        <span class="issue-type">${issue.type}</span>: ${issue.message}
+                    </div>`;
+                });
+                html += `</div>`;
+            }
+        });
+        html += `</div>`;
+    } else {
+        html += `<div class="no-issues">✅ No security issues found!</div>`;
+    }
+
+    document.getElementById('scanResults').innerHTML = html;
+}
+</script>
+
+<style>
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 20px;
+    margin: 20px 0;
+}
+
+.stat-card {
+    background: white;
+    padding: 25px;
+    border-radius: 10px;
+    text-align: center;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+.stat-card.critical { border-left: 4px solid #dc3545; }
+.stat-card.high { border-left: 4px solid #fd7e14; }
+
+.stat-icon {
+    font-size: 2em;
+    margin-bottom: 10px;
+}
+
+.stat-number {
+    font-size: 2.5em;
+    font-weight: bold;
+    margin: 10px 0;
+}
+
+.stat-label {
+    color: #666;
+    font-size: 0.9em;
+}
+
+.action-buttons {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.btn {
+    padding: 12px 20px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.3s;
+}
+
+.btn-primary { background: #007bff; color: white; }
+.btn-warning { background: #ffc107; color: black; }
+.btn-danger { background: #dc3545; color: white; }
+.btn-success { background: #28a745; color: white; }
+
+.btn:hover { transform: translateY(-2px); box-shadow: 0 4px 8px rgba(0,0,0,0.2); }
+
+.alerts-list, .scans-list {
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.alert {
+    padding: 15px;
+    margin: 10px 0;
+    border-radius: 6px;
+    border-left: 4px solid;
+}
+
+.alert-critical { background: #ffe6e6; border-color: #dc3545; }
+.alert-high { background: #fff3e6; border-color: #fd7e14; }
+
+.alert-header {
+    display: flex;
+    justify-content: between;
+    margin-bottom: 5px;
+}
+
+.alert-level {
+    font-weight: bold;
+    text-transform: uppercase;
+}
+
+.alert-time {
+    color: #666;
+    font-size: 0.9em;
+}
+
+.scan-item {
+    padding: 15px;
+    background: #f8f9fa;
+    margin: 10px 0;
+    border-radius: 6px;
+}
+
+.scan-header {
+    display: flex;
+    justify-content: between;
+    margin-bottom: 5px;
+}
+
+.risk-critical { color: #dc3545; font-weight: bold; }
+.risk-high { color: #fd7e14; font-weight: bold; }
+
+.loading {
+    text-align: center;
+    padding: 40px;
+}
+
+.loading-spinner {
+    border: 4px solid #f3f3f3;
+    border-top: 4px solid #007bff;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    animation: spin 1s linear infinite;
+    margin: 0 auto 20px;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.finding {
+    padding: 15px;
+    margin: 10px 0;
+    border-radius: 6px;
+    border-left: 4px solid;
+}
+
+.finding-critical { border-color: #dc3545; background: #ffe6e6; }
+.finding-high { border-color: #fd7e14; background: #fff3e6; }
+
+.finding-header {
+    display: flex;
+    justify-content: between;
+    margin-bottom: 5px;
+}
+
+.file-size {
+    color: #666;
+    font-size: 0.9em;
+}
+
+.finding-path {
+    color: #666;
+    font-size: 0.8em;
+    margin-bottom: 10px;
+}
+
+.issue {
+    padding: 5px 10px;
+    margin: 5px 0;
+    background: rgba(0,0,0,0.05);
+    border-radius: 3px;
+    font-size: 0.9em;
+}
+
+.issue-critical { border-left: 3px solid #dc3545; }
+.issue-high { border-left: 3px solid #fd7e14; }
+
+.issue-type {
+    font-weight: bold;
+    text-transform: uppercase;
+    font-size: 0.8em;
+}
+
+.no-alerts, .no-scans, .no-results, .no-issues {
+    text-align: center;
+    padding: 40px;
+    color: #666;
+    font-style: italic;
+}
+
+.error {
+    background: #ffe6e6;
+    color: #dc3545;
+    padding: 15px;
+    border-radius: 6px;
+    text-align: center;
+}
+</style>
+{% endblock %}
