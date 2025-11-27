@@ -1,0 +1,16 @@
+# Create .dockerignore file
+cat > .dockerignore << EOF
+.git
+.gitignore
+README.md
+*.log
+.env
+node_modules
+__pycache__
+*.pyc
+*.tmp
+.DS_Store
+docker-compose.yml
+.vscode
+.idea
+EOF
