@@ -1,0 +1,358 @@
+{% extends "base.html" %}
+
+{% block title %}DLP Scanner - Text Reports{% endblock %}
+
+{% block content %}
+<div class="dashboard">
+    <h2>Text Format Reports</h2>
+    <p class="subtitle">Generate comprehensive security reports in text format for easy sharing and documentation</p>
+    
+    <div class="reports-container">
+        <!-- Report Generation Options -->
+        <div class="report-options">
+            <h3>Generate Text Report</h3>
+            
+            <div class="option-cards">
+                <div class="option-card">
+                    <h4>📊 Executive Summary Report</h4>
+                    <p>High-level overview with risk assessment and recommendations</p>
+                    <button onclick="generateSummaryReport()" class="primary-btn">
+                        Generate Summary Report
+                    </button>
+                </div>
+                
+                <div class="option-card">
+                    <h4>🔍 Detailed Technical Report</h4>
+                    <p>Comprehensive technical details of scan results</p>
+                    <button onclick="generateDetailedReport()" class="primary-btn">
+                        Generate Detailed Report
+                    </button>
+                </div>
+                
+                <div class="option-card">
+                    <h4>📁 Latest Scan Report</h4>
+                    <p>Generate report from most recent scan data</p>
+                    <button onclick="generateLatestReport()" class="primary-btn">
+                        Latest Scan Report
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Report Output -->
+        <div class="report-output">
+            <div class="output-header">
+                <h3>Generated Report</h3>
+                <div class="output-actions">
+                    <button onclick="downloadReport()" id="download-btn" class="secondary-btn" disabled>
+                        📥 Download .txt File
+                    </button>
+                    <button onclick="copyToClipboard()" id="copy-btn" class="secondary-btn" disabled>
+                        📋 Copy to Clipboard
+                    </button>
+                    <button onclick="clearReport()" class="secondary-btn">
+                        🗑️ Clear
+                    </button>
+                </div>
+            </div>
+            
+            <div class="report-content">
+                <pre id="report-text" class="text-report">
+Select a report type and click generate to create a text format security report.
+The report will appear here and can be downloaded or copied to clipboard.
+                </pre>
+            </div>
+            
+            <div class="report-meta" id="report-meta" style="display: none;">
+                <strong>Report Generated:</strong> <span id="report-time">-</span> | 
+                <strong>Type:</strong> <span id="report-type">-</span> | 
+                <strong>Length:</strong> <span id="report-length">-</span> characters
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.reports-container {
+    display: grid;
+    gap: 2rem;
+}
+
+.option-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.option-card {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    border-left: 4px solid #3498db;
+}
+
+.option-card h4 {
+    margin: 0 0 1rem 0;
+    color: #2c3e50;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.option-card p {
+    color: #7f8c8d;
+    margin-bottom: 1.5rem;
+    line-height: 1.5;
+}
+
+.report-output {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    overflow: hidden;
+}
+
+.output-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.5rem;
+    border-bottom: 1px solid #ecf0f1;
+    background: #f8f9fa;
+}
+
+.output-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.report-content {
+    padding: 0;
+}
+
+.text-report {
+    background: #2c3e50;
+    color: #ecf0f1;
+    padding: 2rem;
+    margin: 0;
+    border-radius: 0;
+    font-family: 'Courier New', monospace;
+    font-size: 0.9rem;
+    line-height: 1.4;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    max-height: 600px;
+    overflow-y: auto;
+}
+
+.report-meta {
+    padding: 1rem 1.5rem;
+    background: #ecf0f1;
+    border-top: 1px solid #bdc3c7;
+    font-size: 0.9rem;
+    color: #7f8c8d;
+}
+
+.subtitle {
+    color: #7f8c8d;
+    margin-bottom: 2rem;
+    font-size: 1.1rem;
+}
+
+.loading-report {
+    text-align: center;
+    padding: 3rem;
+    color: #3498db;
+    font-style: italic;
+}
+
+/* Scrollbar styling for report text */
+.text-report::-webkit-scrollbar {
+    width: 8px;
+}
+
+.text-report::-webkit-scrollbar-track {
+    background: #34495e;
+}
+
+.text-report::-webkit-scrollbar-thumb {
+    background: #3498db;
+    border-radius: 4px;
+}
+
+.text-report::-webkit-scrollbar-thumb:hover {
+    background: #2980b9;
+}
+</style>
+
+<script>
+let currentReport = {
+    content: '',
+    type: '',
+    timestamp: ''
+};
+
+function generateSummaryReport() {
+    generateReport('summary');
+}
+
+function generateDetailedReport() {
+    generateReport('detailed');
+}
+
+function generateLatestReport() {
+    // Try to get latest scan results from session or generate new
+    generateReport('latest');
+}
+
+function generateReport(reportType) {
+    const reportElement = document.getElementById('report-text');
+    reportElement.innerHTML = '<div class="loading-report">Generating report... Please wait.</div>';
+    
+    // Disable buttons during generation
+    setButtonsEnabled(false);
+    
+    let endpoint = '/api/report/text';
+    let payload = {};
+    
+    if (reportType === 'detailed') {
+        endpoint = '/api/report/text/detailed';
+        // In a real implementation, you would pass actual scan results
+        payload = { scan_results: [] };
+    } else if (reportType === 'latest') {
+        endpoint = '/api/report/text';
+        // For demo, we'll use empty results which will use system statistics
+        payload = { scan_results: [] };
+    }
+    
+    fetch(endpoint, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            currentReport = {
+                content: data.report,
+                type: reportType,
+                timestamp: data.timestamp
+            };
+            
+            displayReport(data.report, reportType, data.timestamp);
+            setButtonsEnabled(true);
+        } else {
+            throw new Error(data.error || 'Failed to generate report');
+        }
+    })
+    .catch(error => {
+        reportElement.innerHTML = `Error generating report: ${error.message}`;
+        setButtonsEnabled(false);
+    });
+}
+
+function displayReport(content, type, timestamp) {
+    const reportElement = document.getElementById('report-text');
+    const metaElement = document.getElementById('report-meta');
+    const timeElement = document.getElementById('report-time');
+    const typeElement = document.getElementById('report-type');
+    const lengthElement = document.getElementById('report-length');
+    
+    // Display the report content
+    reportElement.textContent = content;
+    
+    // Update metadata
+    const reportTime = new Date(timestamp).toLocaleString();
+    timeElement.textContent = reportTime;
+    typeElement.textContent = type.charAt(0).toUpperCase() + type.slice(1);
+    lengthElement.textContent = content.length.toLocaleString();
+    
+    // Show metadata
+    metaElement.style.display = 'block';
+}
+
+function downloadReport() {
+    if (!currentReport.content) {
+        alert('No report content to download');
+        return;
+    }
+    
+    const blob = new Blob([currentReport.content], { type: 'text/plain; charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    
+    const timestamp = new Date().toISOString().split('T')[0];
+    const type = currentReport.type || 'security';
+    a.href = url;
+    a.download = `dlp_${type}_report_${timestamp}.txt`;
+    
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+}
+
+function copyToClipboard() {
+    if (!currentReport.content) {
+        alert('No report content to copy');
+        return;
+    }
+    
+    navigator.clipboard.writeText(currentReport.content).then(() => {
+        // Show temporary success message
+        const btn = document.getElementById('copy-btn');
+        const originalText = btn.innerHTML;
+        btn.innerHTML = '✅ Copied!';
+        btn.style.background = '#27ae60';
+        
+        setTimeout(() => {
+            btn.innerHTML = originalText;
+            btn.style.background = '';
+        }, 2000);
+    }).catch(err => {
+        alert('Failed to copy to clipboard: ' + err);
+    });
+}
+
+function clearReport() {
+    const reportElement = document.getElementById('report-text');
+    const metaElement = document.getElementById('report-meta');
+    
+    reportElement.innerHTML = 'Select a report type and click generate to create a text format security report.\nThe report will appear here and can be downloaded or copied to clipboard.';
+    metaElement.style.display = 'none';
+    
+    currentReport = {
+        content: '',
+        type: '',
+        timestamp: ''
+    };
+    
+    setButtonsEnabled(false);
+}
+
+function setButtonsEnabled(enabled) {
+    const downloadBtn = document.getElementById('download-btn');
+    const copyBtn = document.getElementById('copy-btn');
+    
+    downloadBtn.disabled = !enabled;
+    copyBtn.disabled = !enabled;
+    
+    if (enabled) {
+        downloadBtn.style.opacity = '1';
+        copyBtn.style.opacity = '1';
+    } else {
+        downloadBtn.style.opacity = '0.6';
+        copyBtn.style.opacity = '0.6';
+    }
+}
+
+// Initialize page
+document.addEventListener('DOMContentLoaded', function() {
+    setButtonsEnabled(false);
+});
+</script>
+{% endblock %}

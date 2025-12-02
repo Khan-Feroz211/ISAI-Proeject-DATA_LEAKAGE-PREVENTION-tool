@@ -1,0 +1,33 @@
+{
+  "report_time": "2025-11-28T14:59:17.131625",
+  "statistics": {
+    "files_scanned": 0,
+    "sensitive_files_found": 0,
+    "files_failed": 0,
+    "total_size_scanned": 0,
+    "last_scan": "2025-11-28T14:57:54.370054"
+  },
+  "engine_version": "1.0.0",
+  "config_summary": {
+    "max_file_size": 10485760,
+    "allowed_extensions": [
+      ".py",
+      ".yaml",
+      ".html",
+      ".csv",
+      ".xml",
+      ".txt",
+      ".json",
+      ".yml",
+      ".log",
+      ".js"
+    ],
+    "blacklisted_dirs": [
+      "venv",
+      ".env",
+      "node_modules",
+      "__pycache__",
+      ".git"
+    ]
+  }
+}

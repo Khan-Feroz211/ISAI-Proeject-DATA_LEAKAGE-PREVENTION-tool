@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="dashboard">
+    <h2>Security Dashboard</h2>
+    
+    <div class="stats">
+        <div class="stat-card">
+            <h3>Files Scanned</h3>
+            <p id="files-scanned">0</p>
+        </div>
+        <div class="stat-card">
+            <h3>Sensitive Files Found</h3>
+            <p id="sensitive-files">0</p>
+        </div>
+        <div class="stat-card">
+            <h3>Last Scan</h3>
+            <p id="last-scan">Never</p>
+        </div>
+        <div class="stat-card">
+            <h3>System Status</h3>
+            <p id="system-status">Operational</p>
+        </div>
+    </div>
+    
+    <div class="actions">
+        <button onclick="location.href='{{ url_for('scanner') }}'">Start File Scan</button>
+        <button onclick="location.href='{{ url_for('monitor') }}'">Start Monitoring</button>
+        <button onclick="generateReport()">Generate Report</button>
+    </div>
+</div>
+
+<script>
+// Load stats on page load
+function loadStats() {
+    fetch('/api/stats')
+        .then(response => response.json())
+        .then(data => {
+            if (data.statistics) {
+                document.getElementById('files-scanned').textContent = data.statistics.files_scanned || 0;
+                document.getElementById('sensitive-files').textContent = data.statistics.sensitive_files_found || 0;
+                document.getElementById('last-scan').textContent = data.statistics.last_scan ? new Date(data.statistics.last_scan).toLocaleString() : 'Never';
+            }
+        })
+        .catch(error => {
+            console.error('Error loading stats:', error);
+            document.getElementById('system-status').textContent = 'Error';
+            document.getElementById('system-status').style.color = 'red';
+        });
+}
+
+function generateReport() {
+    fetch('/api/report/generate', { method: 'POST' })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('Report generated successfully!');
+            } else {
+                alert('Error generating report: ' + (data.error || 'Unknown error'));
+            }
+        })
+        .catch(error => {
+            alert('Error generating report: ' + error);
+        });
+}
+
+// Load stats when page loads
+loadStats();
+</script>
+{% endblock %}

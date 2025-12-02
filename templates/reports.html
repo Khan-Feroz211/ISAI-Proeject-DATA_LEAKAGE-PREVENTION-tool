@@ -1,0 +1,360 @@
+{% extends "base.html" %}
+
+{% block title %}DLP Scanner - Reports{% endblock %}
+
+{% block content %}
+<div class="dashboard">
+    <h2>Security Reports</h2>
+    
+    <div class="reports-container">
+        <div class="report-actions">
+            <h3>Generate New Report</h3>
+            <div class="actions">
+                <button onclick="generateReport()" id="generate-btn">Generate Comprehensive Report</button>
+                <button onclick="loadActualReports()" id="refresh-btn">Refresh Reports List</button>
+            </div>
+            <div id="generation-status" style="margin-top: 1rem;"></div>
+        </div>
+
+        <div class="reports-list">
+            <h3>Available Reports</h3>
+            <div id="reports-container" class="loading">
+                Loading reports...
+            </div>
+        </div>
+
+        <div class="report-preview" id="report-preview" style="display: none;">
+            <h3>Report Details</h3>
+            <div id="report-content"></div>
+        </div>
+    </div>
+</div>
+
+<style>
+.reports-container {
+    display: grid;
+    gap: 2rem;
+    grid-template-columns: 1fr 2fr;
+}
+
+.report-actions {
+    grid-column: span 1;
+}
+
+.reports-list {
+    grid-column: span 1;
+}
+
+.report-preview {
+    grid-column: span 2;
+}
+
+.report-item {
+    background: white;
+    padding: 1rem;
+    margin: 0.5rem 0;
+    border-radius: 4px;
+    border-left: 4px solid #3498db;
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+
+.report-item:hover {
+    transform: translateX(5px);
+    background: #f8f9fa;
+}
+
+.report-item h4 {
+    margin: 0 0 0.5rem 0;
+    color: #2c3e50;
+}
+
+.report-meta {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.8rem;
+    color: #7f8c8d;
+}
+
+.report-content {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 4px;
+    margin-top: 1rem;
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin: 1rem 0;
+}
+
+.stat-item {
+    background: #f8f9fa;
+    padding: 1rem;
+    border-radius: 4px;
+    text-align: center;
+}
+
+.stat-value {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: #2c3e50;
+}
+
+.stat-label {
+    font-size: 0.8rem;
+    color: #7f8c8d;
+    text-transform: uppercase;
+}
+
+.loading {
+    text-align: center;
+    padding: 2rem;
+    color: #666;
+}
+
+.json-view {
+    background: #2c3e50;
+    color: #ecf0f1;
+    padding: 1rem;
+    border-radius: 4px;
+    font-family: monospace;
+    white-space: pre-wrap;
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.report-file {
+    background: #ecf0f1;
+    padding: 0.5rem;
+    border-radius: 4px;
+    font-family: monospace;
+    font-size: 0.9rem;
+    margin: 0.5rem 0;
+}
+</style>
+
+<script>
+function generateReport() {
+    const btn = document.getElementById('generate-btn');
+    const status = document.getElementById('generation-status');
+    
+    btn.disabled = true;
+    btn.textContent = 'Generating...';
+    status.innerHTML = '<div style="color: #3498db;">Generating report...</div>';
+
+    fetch('/api/report/generate', { 
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            status.innerHTML = '<div style="color: #27ae60;">✓ Report generated successfully!</div>';
+            loadActualReports();
+            
+            // Show the generated report
+            if (data.report) {
+                setTimeout(() => {
+                    viewReport(data.report);
+                }, 1000);
+            }
+        } else {
+            status.innerHTML = `<div style="color: #e74c3c;">❌ Error: ${data.error || 'Unknown error'}</div>`;
+        }
+    })
+    .catch(error => {
+        status.innerHTML = `<div style="color: #e74c3c;">❌ Error: ${error}</div>`;
+    })
+    .finally(() => {
+        btn.disabled = false;
+        btn.textContent = 'Generate Comprehensive Report';
+    });
+}
+
+function loadActualReports() {
+    const container = document.getElementById('reports-container');
+    container.innerHTML = '<div class="loading">Loading reports from filesystem...</div>';
+
+    // Try to fetch reports via API first
+    fetch('/api/reports/list')
+    .then(response => {
+        if (!response.ok) throw new Error('No reports API');
+        return response.json();
+    })
+    .then(data => {
+        if (data.reports && data.reports.length > 0) {
+            displayReportsList(data.reports);
+        } else {
+            showManualReportDiscovery();
+        }
+    })
+    .catch(error => {
+        showManualReportDiscovery();
+    });
+}
+
+function displayReportsList(reports) {
+    const container = document.getElementById('reports-container');
+    
+    if (reports.length === 0) {
+        container.innerHTML = '<div class="loading">No reports found. Generate one first!</div>';
+        return;
+    }
+
+    let html = '';
+    reports.forEach(report => {
+        const reportTime = new Date(report.report_time || report.modified).toLocaleString();
+        html += `
+            <div class="report-item" onclick="loadReportDetails('${report.filename}')">
+                <h4>${report.filename}</h4>
+                <div class="report-meta">
+                    <span>Generated: ${reportTime}</span>
+                    <span>Files: ${report.files_scanned || 0}</span>
+                </div>
+                <div class="report-file">Location: ${report.path || './reports/' + report.filename}</div>
+            </div>
+        `;
+    });
+    
+    container.innerHTML = html;
+}
+
+function showManualReportDiscovery() {
+    const container = document.getElementById('reports-container');
+    
+    // Check if we can get reports via filesystem API
+    fetch('/api/system/reports')
+    .then(response => response.json())
+    .then(data => {
+        if (data.reports && data.reports.length > 0) {
+            displayReportsList(data.reports);
+        } else {
+            container.innerHTML = `
+                <div class="report-item">
+                    <h4>How to Access Generated Reports</h4>
+                    <p>Your reports are saved in the <strong>reports/</strong> directory.</p>
+                    
+                    <div class="report-file">
+                        <strong>Location:</strong> /home/feroz_211/.docker/ISAIproject/reports/
+                    </div>
+                    
+                    <p><strong>To view your reports:</strong></p>
+                    <ol>
+                        <li>Open a terminal in your project directory</li>
+                        <li>Run: <code>ls -la reports/</code></li>
+                        <li>View a report: <code>cat reports/dlp_report_*.json</code></li>
+                    </ol>
+                    
+                    <p><strong>Recent reports should appear here automatically after generation.</strong></p>
+                </div>
+            `;
+        }
+    })
+    .catch(error => {
+        container.innerHTML = `
+            <div class="report-item">
+                <h4>Reports Generated Successfully!</h4>
+                <p>Your reports are saved in the <strong>reports/</strong> directory.</p>
+                <p>Check the terminal where you're running the Flask app - it should show the report file path.</p>
+                <button onclick="checkReportsDirectory()" style="margin-top: 1rem;">Check Reports Directory</button>
+            </div>
+        `;
+    });
+}
+
+function loadReportDetails(filename) {
+    fetch(`/api/report/view/${filename}`)
+    .then(response => response.json())
+    .then(reportData => {
+        viewReport(reportData);
+    })
+    .catch(error => {
+        alert('Could not load report details. Check the reports directory manually.');
+    });
+}
+
+function viewReport(reportData) {
+    const preview = document.getElementById('report-preview');
+    const content = document.getElementById('report-content');
+    
+    const stats = reportData.statistics || {};
+    const reportTime = new Date(reportData.report_time).toLocaleString();
+    
+    content.innerHTML = `
+        <h4>Security Scan Report - ${reportTime}</h4>
+        
+        <div class="stats-grid">
+            <div class="stat-item">
+                <div class="stat-value">${stats.files_scanned || 0}</div>
+                <div class="stat-label">Files Scanned</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value">${stats.sensitive_files_found || 0}</div>
+                <div class="stat-label">Sensitive Files</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value">${stats.files_failed || 0}</div>
+                <div class="stat-label">Files Failed</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value">${formatBytes(stats.total_size_scanned || 0)}</div>
+                <div class="stat-label">Total Size</div>
+            </div>
+        </div>
+        
+        <h5>Full Report Data:</h5>
+        <div class="json-view">${JSON.stringify(reportData, null, 2)}</div>
+        
+        <div style="margin-top: 1rem;">
+            <button onclick="downloadReport('${reportData.report_time}', ${JSON.stringify(reportData).replace(/'/g, "\\'")})">
+                Download JSON Report
+            </button>
+            <button onclick="printReport()" style="margin-left: 1rem;">
+                Print Report
+            </button>
+        </div>
+    `;
+    
+    preview.style.display = 'block';
+    preview.scrollIntoView({ behavior: 'smooth' });
+}
+
+function checkReportsDirectory() {
+    alert('To check reports directory:\n\n1. Open terminal in project folder\n2. Run: ls -la reports/\n3. You should see .json files like: dlp_report_*.json');
+}
+
+function formatBytes(bytes) {
+    if (bytes === 0) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
+
+function downloadReport(timestamp, reportData) {
+    const blob = new Blob([JSON.stringify(reportData, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `dlp_report_${timestamp.replace(/[:.-]/g, '')}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+}
+
+function printReport() {
+    window.print();
+}
+
+// Load reports when page opens
+document.addEventListener('DOMContentLoaded', function() {
+    loadActualReports();
+});
+</script>
+{% endblock %}

@@ -1,0 +1,515 @@
+{% extends "base.html" %}
+
+{% block title %}DLP Scanner - File Scanner{% endblock %}
+
+{% block content %}
+<div class="dashboard">
+    <h2>File Scanner</h2>
+    
+    <div class="scanner-container">
+        <!-- Scan Configuration -->
+        <div class="scan-config">
+            <h3>Scan Configuration</h3>
+            <form id="scan-form">
+                <div class="form-group">
+                    <label for="scan-path">Scan Path:</label>
+                    <input type="text" id="scan-path" name="path" 
+                           placeholder="/path/to/scan" value="./data" required>
+                    <small>Enter directory or file path to scan</small>
+                </div>
+                
+                <div class="form-group">
+                    <label for="scan-type">Scan Type:</label>
+                    <select id="scan-type" name="scan_type">
+                        <option value="quick">Quick Scan (Common file types)</option>
+                        <option value="deep">Deep Scan (All text files)</option>
+                        <option value="custom">Custom Scan</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="scan-recursive" name="recursive" checked>
+                        Scan subdirectories recursively
+                    </label>
+                </div>
+                
+                <button type="submit" id="scan-button" class="primary-btn">Start Scan</button>
+            </form>
+        </div>
+
+        <!-- Real-time Progress -->
+        <div class="scan-progress" id="scan-progress" style="display: none;">
+            <h3>Scan Progress</h3>
+            <div class="progress-bar">
+                <div class="progress-fill" id="progress-fill"></div>
+            </div>
+            <div class="progress-text">
+                <span id="progress-text">Initializing...</span>
+                <span id="progress-stats"></span>
+            </div>
+        </div>
+
+        <!-- Results Section -->
+        <div class="scan-results" id="scan-results">
+            <h3>Scan Results</h3>
+            <div class="results-summary" id="results-summary">
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <h3>Total Files</h3>
+                        <p id="total-files">0</p>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Sensitive Files</h3>
+                        <p id="sensitive-files">0</p>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Files Failed</h3>
+                        <p id="failed-files">0</p>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Scan Duration</h3>
+                        <p id="scan-duration">0s</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="results-details">
+                <div class="results-tabs">
+                    <button class="tab-btn active" onclick="showTab('sensitive-tab')">Sensitive Files</button>
+                    <button class="tab-btn" onclick="showTab('all-tab')">All Files</button>
+                    <button class="tab-btn" onclick="showTab('failed-tab')">Failed Scans</button>
+                </div>
+                
+                <div id="sensitive-tab" class="tab-content active">
+                    <div id="sensitive-files-list" class="files-list"></div>
+                </div>
+                
+                <div id="all-tab" class="tab-content">
+                    <div id="all-files-list" class="files-list"></div>
+                </div>
+                
+                <div id="failed-tab" class="tab-content">
+                    <div id="failed-files-list" class="files-list"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.scanner-container {
+    display: grid;
+    gap: 2rem;
+}
+
+.scan-config, .scan-progress {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+.form-group {
+    margin-bottom: 1.5rem;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: bold;
+    color: #2c3e50;
+}
+
+.form-group input[type="text"],
+.form-group select {
+    width: 100%;
+    padding: 0.75rem;
+    border: 2px solid #bdc3c7;
+    border-radius: 4px;
+    font-size: 1rem;
+    transition: border-color 0.3s;
+}
+
+.form-group input[type="text"]:focus,
+.form-group select:focus {
+    border-color: #3498db;
+    outline: none;
+}
+
+.form-group small {
+    color: #7f8c8d;
+    font-size: 0.8rem;
+}
+
+.form-group input[type="checkbox"] {
+    margin-right: 0.5rem;
+}
+
+.primary-btn {
+    background: #27ae60;
+    color: white;
+    border: none;
+    padding: 1rem 2rem;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 1rem;
+    width: 100%;
+    transition: background 0.3s;
+}
+
+.primary-btn:hover:not(:disabled) {
+    background: #219652;
+}
+
+.primary-btn:disabled {
+    background: #95a5a6;
+    cursor: not-allowed;
+}
+
+/* Progress Bar */
+.progress-bar {
+    width: 100%;
+    height: 20px;
+    background: #ecf0f1;
+    border-radius: 10px;
+    overflow: hidden;
+    margin: 1rem 0;
+}
+
+.progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #3498db, #2980b9);
+    width: 0%;
+    transition: width 0.3s ease;
+}
+
+.progress-text {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.9rem;
+    color: #7f8c8d;
+}
+
+/* Results Tabs */
+.results-tabs {
+    display: flex;
+    border-bottom: 2px solid #ecf0f1;
+    margin-bottom: 1rem;
+}
+
+.tab-btn {
+    background: none;
+    border: none;
+    padding: 1rem 2rem;
+    cursor: pointer;
+    border-bottom: 3px solid transparent;
+    transition: all 0.3s;
+}
+
+.tab-btn.active {
+    border-bottom-color: #3498db;
+    color: #3498db;
+    font-weight: bold;
+}
+
+.tab-btn:hover {
+    background: #f8f9fa;
+}
+
+.tab-content {
+    display: none;
+}
+
+.tab-content.active {
+    display: block;
+}
+
+/* File List */
+.files-list {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.file-item {
+    background: white;
+    padding: 1rem;
+    margin: 0.5rem 0;
+    border-radius: 4px;
+    border-left: 4px solid #bdc3c7;
+    transition: transform 0.2s;
+}
+
+.file-item.sensitive {
+    border-left-color: #e74c3c;
+    background: #fdf2f2;
+}
+
+.file-item:hover {
+    transform: translateX(5px);
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+.file-path {
+    font-weight: bold;
+    margin-bottom: 0.5rem;
+    word-break: break-all;
+}
+
+.file-meta {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.8rem;
+    color: #7f8c8d;
+    margin-bottom: 0.5rem;
+}
+
+.file-issues {
+    color: #e74c3c;
+    font-size: 0.9rem;
+}
+
+.file-issues .risk-high {
+    color: #e74c3c;
+    font-weight: bold;
+}
+
+.file-issues .risk-medium {
+    color: #f39c12;
+}
+
+.file-issues .risk-low {
+    color: #f1c40f;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 3rem;
+    color: #7f8c8d;
+}
+
+.loading {
+    text-align: center;
+    padding: 2rem;
+    color: #3498db;
+}
+</style>
+
+<script>
+let currentScanResults = [];
+let scanStartTime = null;
+
+function showTab(tabName) {
+    // Hide all tabs
+    document.querySelectorAll('.tab-content').forEach(tab => {
+        tab.classList.remove('active');
+    });
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    
+    // Show selected tab
+    document.getElementById(tabName).classList.add('active');
+    event.target.classList.add('active');
+}
+
+function updateProgress(progress, text, stats) {
+    const progressFill = document.getElementById('progress-fill');
+    const progressText = document.getElementById('progress-text');
+    const progressStats = document.getElementById('progress-stats');
+    
+    progressFill.style.width = `${progress}%`;
+    progressText.textContent = text;
+    progressStats.textContent = stats || '';
+}
+
+function displayResults(results) {
+    const scanDuration = ((Date.now() - scanStartTime) / 1000).toFixed(1);
+    document.getElementById('scan-duration').textContent = `${scanDuration}s`;
+    
+    currentScanResults = results;
+    
+    // Update summary
+    const totalFiles = results.length;
+    const sensitiveFiles = results.filter(r => r.sensitive_content).length;
+    const failedFiles = results.filter(r => r.error).length;
+    
+    document.getElementById('total-files').textContent = totalFiles;
+    document.getElementById('sensitive-files').textContent = sensitiveFiles;
+    document.getElementById('failed-files').textContent = failedFiles;
+    
+    // Display files in tabs
+    displaySensitiveFiles(results);
+    displayAllFiles(results);
+    displayFailedFiles(results);
+}
+
+function displaySensitiveFiles(results) {
+    const container = document.getElementById('sensitive-files-list');
+    const sensitiveFiles = results.filter(r => r.sensitive_content && !r.error);
+    
+    if (sensitiveFiles.length === 0) {
+        container.innerHTML = '<div class="empty-state">No sensitive files found</div>';
+        return;
+    }
+    
+    let html = '';
+    sensitiveFiles.forEach(file => {
+        const riskLevel = file.risk_level || 'low';
+        html += `
+            <div class="file-item sensitive">
+                <div class="file-path">${file.path}</div>
+                <div class="file-meta">
+                    <span>Size: ${formatBytes(file.size || 0)}</span>
+                    <span>Risk: <span class="risk-${riskLevel}">${riskLevel.toUpperCase()}</span></span>
+                </div>
+                <div class="file-issues">
+                    ${(file.issues || []).join(', ')}
+                </div>
+                ${file.classification_details ? `
+                <div class="file-meta">
+                    <span>Patterns: ${file.classification_details.detected_patterns?.length || 0}</span>
+                    <span>Confidence: ${Math.round((file.classification_details.confidence || 0) * 100)}%</span>
+                </div>
+                ` : ''}
+            </div>
+        `;
+    });
+    container.innerHTML = html;
+}
+
+function displayAllFiles(results) {
+    const container = document.getElementById('all-files-list');
+    
+    if (results.length === 0) {
+        container.innerHTML = '<div class="empty-state">No files scanned</div>';
+        return;
+    }
+    
+    let html = '';
+    results.forEach(file => {
+        const isSensitive = file.sensitive_content;
+        html += `
+            <div class="file-item ${isSensitive ? 'sensitive' : ''}">
+                <div class="file-path">${file.path}</div>
+                <div class="file-meta">
+                    <span>Size: ${formatBytes(file.size || 0)}</span>
+                    <span>Sensitive: ${isSensitive ? 'YES' : 'No'}</span>
+                </div>
+                ${file.error ? `<div class="file-issues">Error: ${file.error}</div>` : ''}
+            </div>
+        `;
+    });
+    container.innerHTML = html;
+}
+
+function displayFailedFiles(results) {
+    const container = document.getElementById('failed-files-list');
+    const failedFiles = results.filter(r => r.error);
+    
+    if (failedFiles.length === 0) {
+        container.innerHTML = '<div class="empty-state">No failed scans</div>';
+        return;
+    }
+    
+    let html = '';
+    failedFiles.forEach(file => {
+        html += `
+            <div class="file-item">
+                <div class="file-path">${file.path}</div>
+                <div class="file-issues">Error: ${file.error}</div>
+            </div>
+        `;
+    });
+    container.innerHTML = html;
+}
+
+function formatBytes(bytes) {
+    if (bytes === 0) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
+
+// Form submission
+document.getElementById('scan-form').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    const scanData = {
+        path: document.getElementById('scan-path').value,
+        scan_type: document.getElementById('scan-type').value,
+        recursive: document.getElementById('scan-recursive').checked
+    };
+    
+    startScan(scanData);
+});
+
+function startScan(scanData) {
+    const scanButton = document.getElementById('scan-button');
+    const progressSection = document.getElementById('scan-progress');
+    
+    scanButton.disabled = true;
+    scanButton.textContent = 'Scanning...';
+    progressSection.style.display = 'block';
+    scanStartTime = Date.now();
+    
+    // Show initial progress
+    updateProgress(10, 'Initializing scan...');
+    
+    fetch('/api/scan', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(scanData)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            updateProgress(100, 'Scan completed!', `Found ${data.results.length} files`);
+            displayResults(data.results);
+            
+            // Update global stats
+            updateGlobalStats();
+        } else {
+            throw new Error(data.error || 'Scan failed');
+        }
+    })
+    .catch(error => {
+        updateProgress(0, 'Scan failed', '');
+        alert('Scan failed: ' + error.message);
+    })
+    .finally(() => {
+        scanButton.disabled = false;
+        scanButton.textContent = 'Start Scan';
+    });
+}
+
+function updateGlobalStats() {
+    fetch('/api/stats')
+        .then(response => response.json())
+        .then(data => {
+            if (data.statistics) {
+                // This will update the dashboard when we navigate back
+                console.log('Global stats updated:', data.statistics);
+            }
+        });
+}
+
+// Initialize page
+document.addEventListener('DOMContentLoaded', function() {
+    // Load any previous scan results if available
+    fetch('/api/stats')
+        .then(response => response.json())
+        .then(data => {
+            if (data.statistics) {
+                document.getElementById('total-files').textContent = data.statistics.files_scanned || 0;
+                document.getElementById('sensitive-files').textContent = data.statistics.sensitive_files_found || 0;
+                document.getElementById('failed-files').textContent = data.statistics.files_failed || 0;
+            }
+        });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,701 @@
+{% extends "base.html" %}
+
+{% block title %}DLP Scanner - Security Alerts{% endblock %}
+
+{% block content %}
+<div class="dashboard">
+    <h2>Security Alerts Dashboard</h2>
+    
+    <div class="alerts-container">
+        <!-- Alert Summary Cards -->
+        <div class="alerts-summary">
+            <h3>Alert Summary</h3>
+            <div class="stats-grid">
+                <div class="stat-card critical">
+                    <h3>Critical</h3>
+                    <p id="critical-count">0</p>
+                    <small>Immediate action required</small>
+                </div>
+                <div class="stat-card high">
+                    <h3>High</h3>
+                    <p id="high-count">0</p>
+                    <small>Urgent attention needed</small>
+                </div>
+                <div class="stat-card medium">
+                    <h3>Medium</h3>
+                    <p id="medium-count">0</p>
+                    <small>Review required</small>
+                </div>
+                <div class="stat-card low">
+                    <h3>Low</h3>
+                    <p id="low-count">0</p>
+                    <small>Informational</small>
+                </div>
+            </div>
+            
+            <div class="alert-actions">
+                <button onclick="loadAlerts()" class="secondary-btn">
+                    <span class="icon">🔄</span> Refresh Alerts
+                </button>
+                <button onclick="clearAllAlerts()" class="secondary-btn">
+                    <span class="icon">🗑️</span> Clear All
+                </button>
+                <button onclick="generateAlertReport()" class="primary-btn">
+                    <span class="icon">📊</span> Generate Report
+                </button>
+            </div>
+        </div>
+
+        <!-- Alert Filters -->
+        <div class="alert-filters">
+            <h3>Filter Alerts</h3>
+            <div class="filter-controls">
+                <div class="filter-group">
+                    <label>Severity:</label>
+                    <select id="severity-filter" onchange="filterAlerts()">
+                        <option value="all">All Severities</option>
+                        <option value="critical">Critical Only</option>
+                        <option value="high">High & Above</option>
+                        <option value="medium">Medium & Above</option>
+                        <option value="low">Low & Above</option>
+                    </select>
+                </div>
+                
+                <div class="filter-group">
+                    <label>Type:</label>
+                    <select id="type-filter" onchange="filterAlerts()">
+                        <option value="all">All Types</option>
+                        <option value="sensitive_data">Sensitive Data</option>
+                        <option value="access_violation">Access Violation</option>
+                        <option value="policy_breach">Policy Breach</option>
+                        <option value="system_alert">System Alert</option>
+                    </select>
+                </div>
+                
+                <div class="filter-group">
+                    <label>Status:</label>
+                    <select id="status-filter" onchange="filterAlerts()">
+                        <option value="all">All Status</option>
+                        <option value="new">New</option>
+                        <option value="acknowledged">Acknowledged</option>
+                        <option value="resolved">Resolved</option>
+                    </select>
+                </div>
+                
+                <div class="filter-group">
+                    <label>Search:</label>
+                    <input type="text" id="search-filter" placeholder="Search alerts..." onkeyup="filterAlerts()">
+                </div>
+            </div>
+        </div>
+
+        <!-- Alerts List -->
+        <div class="alerts-list">
+            <div class="alerts-header">
+                <h3>Security Alerts</h3>
+                <div class="alerts-count">
+                    <span id="alerts-count">0</span> alerts shown
+                </div>
+            </div>
+            
+            <div id="alerts-container" class="alerts-content">
+                <div class="loading">Loading security alerts...</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.alerts-container {
+    display: grid;
+    gap: 2rem;
+}
+
+.alerts-summary {
+    grid-column: span 1;
+}
+
+.alert-filters {
+    grid-column: span 1;
+}
+
+.alerts-list {
+    grid-column: span 2;
+}
+
+/* Summary Cards */
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.stat-card {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    text-align: center;
+    border-left: 4px solid #bdc3c7;
+}
+
+.stat-card.critical { 
+    border-left-color: #e74c3c;
+    background: linear-gradient(135deg, #fdf2f2, #fff);
+}
+.stat-card.high { 
+    border-left-color: #e67e22;
+    background: linear-gradient(135deg, #fef9e7, #fff);
+}
+.stat-card.medium { 
+    border-left-color: #f39c12;
+    background: linear-gradient(135deg, #fef9e7, #fff);
+}
+.stat-card.low { 
+    border-left-color: #f1c40f;
+    background: linear-gradient(135deg, #f8f9fa, #fff);
+}
+
+.stat-card h3 {
+    margin: 0 0 0.5rem 0;
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    color: #7f8c8d;
+}
+
+.stat-card p {
+    margin: 0;
+    font-size: 2rem;
+    font-weight: bold;
+    color: #2c3e50;
+}
+
+.stat-card small {
+    color: #95a5a6;
+    font-size: 0.8rem;
+}
+
+/* Alert Actions */
+.alert-actions {
+    display: flex;
+    gap: 1rem;
+}
+
+.primary-btn, .secondary-btn {
+    border: none;
+    padding: 0.75rem 1.5rem;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    transition: all 0.3s;
+}
+
+.primary-btn {
+    background: #3498db;
+    color: white;
+}
+
+.primary-btn:hover {
+    background: #2980b9;
+}
+
+.secondary-btn {
+    background: #ecf0f1;
+    color: #2c3e50;
+}
+
+.secondary-btn:hover {
+    background: #bdc3c7;
+}
+
+/* Filter Controls */
+.filter-controls {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+}
+
+.filter-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.filter-group label {
+    font-weight: bold;
+    font-size: 0.9rem;
+    color: #2c3e50;
+}
+
+.filter-group select,
+.filter-group input {
+    padding: 0.75rem;
+    border: 2px solid #bdc3c7;
+    border-radius: 4px;
+    font-size: 0.9rem;
+    transition: border-color 0.3s;
+}
+
+.filter-group select:focus,
+.filter-group input:focus {
+    border-color: #3498db;
+    outline: none;
+}
+
+/* Alerts List */
+.alerts-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.alerts-count {
+    color: #7f8c8d;
+    font-size: 0.9rem;
+}
+
+.alerts-content {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    min-height: 400px;
+}
+
+/* Alert Items */
+.alert-item {
+    padding: 1.5rem;
+    border-bottom: 1px solid #ecf0f1;
+    transition: background-color 0.3s;
+}
+
+.alert-item:last-child {
+    border-bottom: none;
+}
+
+.alert-item:hover {
+    background: #f8f9fa;
+}
+
+.alert-item.critical {
+    border-left: 4px solid #e74c3c;
+    background: #fdf2f2;
+}
+
+.alert-item.high {
+    border-left: 4px solid #e67e22;
+    background: #fef9e7;
+}
+
+.alert-item.medium {
+    border-left: 4px solid #f39c12;
+    background: #fef9e7;
+}
+
+.alert-item.low {
+    border-left: 4px solid #f1c40f;
+    background: #f8f9fa;
+}
+
+.alert-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 1rem;
+}
+
+.alert-title {
+    font-weight: bold;
+    font-size: 1.1rem;
+    margin: 0;
+    color: #2c3e50;
+}
+
+.alert-severity {
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.7rem;
+    font-weight: bold;
+    text-transform: uppercase;
+}
+
+.severity-critical { background: #e74c3c; color: white; }
+.severity-high { background: #e67e22; color: white; }
+.severity-medium { background: #f39c12; color: white; }
+.severity-low { background: #f1c40f; color: #2c3e50; }
+
+.alert-meta {
+    display: flex;
+    gap: 2rem;
+    font-size: 0.8rem;
+    color: #7f8c8d;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+}
+
+.alert-description {
+    margin-bottom: 1rem;
+    line-height: 1.5;
+    color: #2c3e50;
+}
+
+.alert-actions-inline {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.btn-small {
+    padding: 0.4rem 0.8rem;
+    font-size: 0.8rem;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.btn-acknowledge {
+    background: #27ae60;
+    color: white;
+}
+
+.btn-acknowledge:hover {
+    background: #219652;
+}
+
+.btn-resolve {
+    background: #3498db;
+    color: white;
+}
+
+.btn-resolve:hover {
+    background: #2980b9;
+}
+
+.btn-dismiss {
+    background: #95a5a6;
+    color: white;
+}
+
+.btn-dismiss:hover {
+    background: #7f8c8d;
+}
+
+/* Empty and Loading States */
+.empty-state {
+    text-align: center;
+    padding: 3rem;
+    color: #7f8c8d;
+    font-style: italic;
+}
+
+.loading {
+    text-align: center;
+    padding: 3rem;
+    color: #3498db;
+}
+
+.icon {
+    font-size: 1rem;
+}
+</style>
+
+<script>
+let allAlerts = [];
+let filteredAlerts = [];
+
+// Sample alerts data - in real implementation, this would come from an API
+const sampleAlerts = [
+    {
+        id: 1,
+        title: "Credit Card Data Exposure",
+        description: "Multiple credit card numbers detected in customer data file. This violates PCI compliance policies.",
+        severity: "critical",
+        type: "sensitive_data",
+        file_path: "/data/customers/payment_info.csv",
+        timestamp: new Date().toISOString(),
+        status: "new",
+        patterns: ["credit_card"],
+        confidence: 0.95
+    },
+    {
+        id: 2,
+        title: "Confidential Document in Public Directory",
+        description: "Financial report marked as confidential found in publicly accessible directory.",
+        severity: "high",
+        type: "policy_breach",
+        file_path: "/public/docs/Q4_financial_report.pdf",
+        timestamp: new Date(Date.now() - 3600000).toISOString(),
+        status: "acknowledged",
+        patterns: ["confidential"],
+        confidence: 0.88
+    },
+    {
+        id: 3,
+        title: "Plaintext Passwords in Config",
+        description: "Database passwords stored in plaintext within application configuration file.",
+        severity: "high",
+        type: "sensitive_data",
+        file_path: "/config/database.conf",
+        timestamp: new Date(Date.now() - 7200000).toISOString(),
+        status: "new",
+        patterns: ["password_mention"],
+        confidence: 0.92
+    },
+    {
+        id: 4,
+        title: "SSN Data in Log Files",
+        description: "Social Security numbers detected in application log files. Logs should be sanitized.",
+        severity: "medium",
+        type: "sensitive_data",
+        file_path: "/logs/app/server.log",
+        timestamp: new Date(Date.now() - 10800000).toISOString(),
+        status: "new",
+        patterns: ["ssn"],
+        confidence: 0.78
+    },
+    {
+        id: 5,
+        title: "API Keys in Source Code",
+        description: "Third-party API keys found committed to version control. Consider using environment variables.",
+        severity: "medium",
+        type: "sensitive_data",
+        file_path: "/src/config/keys.js",
+        timestamp: new Date(Date.now() - 14400000).toISOString(),
+        status: "resolved",
+        patterns: ["api_key"],
+        confidence: 0.85
+    },
+    {
+        id: 6,
+        title: "Personal Email Addresses",
+        description: "Personal email addresses found in marketing list. Ensure GDPR compliance.",
+        severity: "low",
+        type: "sensitive_data",
+        file_path: "/data/marketing/contacts.csv",
+        timestamp: new Date(Date.now() - 18000000).toISOString(),
+        status: "acknowledged",
+        patterns: ["email"],
+        confidence: 0.65
+    }
+];
+
+function loadAlerts() {
+    const container = document.getElementById('alerts-container');
+    container.innerHTML = '<div class="loading">Loading security alerts...</div>';
+    
+    // Simulate API call delay
+    setTimeout(() => {
+        allAlerts = [...sampleAlerts];
+        filteredAlerts = [...allAlerts];
+        updateAlertSummary();
+        displayAlerts(filteredAlerts);
+    }, 1000);
+}
+
+function updateAlertSummary() {
+    const critical = allAlerts.filter(a => a.severity === 'critical').length;
+    const high = allAlerts.filter(a => a.severity === 'high').length;
+    const medium = allAlerts.filter(a => a.severity === 'medium').length;
+    const low = allAlerts.filter(a => a.severity === 'low').length;
+    
+    document.getElementById('critical-count').textContent = critical;
+    document.getElementById('high-count').textContent = high;
+    document.getElementById('medium-count').textContent = medium;
+    document.getElementById('low-count').textContent = low;
+}
+
+function displayAlerts(alerts) {
+    const container = document.getElementById('alerts-container');
+    const countElement = document.getElementById('alerts-count');
+    
+    countElement.textContent = alerts.length;
+    
+    if (alerts.length === 0) {
+        container.innerHTML = '<div class="empty-state">No alerts match your filters</div>';
+        return;
+    }
+    
+    let html = '';
+    alerts.forEach(alert => {
+        const timeAgo = getTimeAgo(alert.timestamp);
+        const statusClass = alert.status === 'resolved' ? 'resolved' : alert.status;
+        
+        html += `
+            <div class="alert-item ${alert.severity}">
+                <div class="alert-header">
+                    <div class="alert-title">${alert.title}</div>
+                    <div class="alert-severity severity-${alert.severity}">
+                        ${alert.severity}
+                    </div>
+                </div>
+                
+                <div class="alert-meta">
+                    <span><strong>Type:</strong> ${alert.type.replace(/_/g, ' ')}</span>
+                    <span><strong>File:</strong> ${alert.file_path}</span>
+                    <span><strong>Detected:</strong> ${timeAgo}</span>
+                    <span><strong>Status:</strong> ${alert.status}</span>
+                    <span><strong>Confidence:</strong> ${Math.round(alert.confidence * 100)}%</span>
+                </div>
+                
+                <div class="alert-description">
+                    ${alert.description}
+                </div>
+                
+                <div class="alert-actions-inline">
+                    ${alert.status !== 'acknowledged' ? `
+                        <button class="btn-small btn-acknowledge" onclick="acknowledgeAlert(${alert.id})">
+                            Acknowledge
+                        </button>
+                    ` : ''}
+                    
+                    ${alert.status !== 'resolved' ? `
+                        <button class="btn-small btn-resolve" onclick="resolveAlert(${alert.id})">
+                            Mark Resolved
+                        </button>
+                    ` : ''}
+                    
+                    <button class="btn-small btn-dismiss" onclick="dismissAlert(${alert.id})">
+                        Dismiss
+                    </button>
+                </div>
+            </div>
+        `;
+    });
+    
+    container.innerHTML = html;
+}
+
+function filterAlerts() {
+    const severityFilter = document.getElementById('severity-filter').value;
+    const typeFilter = document.getElementById('type-filter').value;
+    const statusFilter = document.getElementById('status-filter').value;
+    const searchFilter = document.getElementById('search-filter').value.toLowerCase();
+    
+    filteredAlerts = allAlerts.filter(alert => {
+        // Severity filter
+        if (severityFilter !== 'all') {
+            const severityOrder = { critical: 4, high: 3, medium: 2, low: 1 };
+            const alertSeverity = severityOrder[alert.severity];
+            const filterSeverity = severityOrder[severityFilter];
+            if (alertSeverity < filterSeverity) return false;
+        }
+        
+        // Type filter
+        if (typeFilter !== 'all' && alert.type !== typeFilter) return false;
+        
+        // Status filter
+        if (statusFilter !== 'all' && alert.status !== statusFilter) return false;
+        
+        // Search filter
+        if (searchFilter && !alert.title.toLowerCase().includes(searchFilter) && 
+            !alert.description.toLowerCase().includes(searchFilter) &&
+            !alert.file_path.toLowerCase().includes(searchFilter)) {
+            return false;
+        }
+        
+        return true;
+    });
+    
+    displayAlerts(filteredAlerts);
+}
+
+function getTimeAgo(timestamp) {
+    const now = new Date();
+    const past = new Date(timestamp);
+    const diffMs = now - past;
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+    
+    if (diffMins < 1) return 'Just now';
+    if (diffMins < 60) return `${diffMins} minute${diffMins > 1 ? 's' : ''} ago`;
+    if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
+    return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
+}
+
+function acknowledgeAlert(alertId) {
+    const alert = allAlerts.find(a => a.id === alertId);
+    if (alert) {
+        alert.status = 'acknowledged';
+        updateAlertSummary();
+        filterAlerts();
+        showNotification(`Alert "${alert.title}" acknowledged`);
+    }
+}
+
+function resolveAlert(alertId) {
+    const alert = allAlerts.find(a => a.id === alertId);
+    if (alert) {
+        alert.status = 'resolved';
+        updateAlertSummary();
+        filterAlerts();
+        showNotification(`Alert "${alert.title}" marked as resolved`);
+    }
+}
+
+function dismissAlert(alertId) {
+    allAlerts = allAlerts.filter(a => a.id !== alertId);
+    updateAlertSummary();
+    filterAlerts();
+    showNotification('Alert dismissed');
+}
+
+function clearAllAlerts() {
+    if (confirm('Are you sure you want to clear all alerts? This action cannot be undone.')) {
+        allAlerts = [];
+        updateAlertSummary();
+        filterAlerts();
+        showNotification('All alerts cleared');
+    }
+}
+
+function generateAlertReport() {
+    const reportData = {
+        generated_at: new Date().toISOString(),
+        total_alerts: allAlerts.length,
+        summary: {
+            critical: allAlerts.filter(a => a.severity === 'critical').length,
+            high: allAlerts.filter(a => a.severity === 'high').length,
+            medium: allAlerts.filter(a => a.severity === 'medium').length,
+            low: allAlerts.filter(a => a.severity === 'low').length
+        },
+        alerts: allAlerts
+    };
+    
+    const blob = new Blob([JSON.stringify(reportData, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `alerts_report_${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    
+    showNotification('Alert report generated and downloaded');
+}
+
+function showNotification(message) {
+    // Simple notification - you could use a toast library here
+    alert(message);
+}
+
+// Initialize the page
+document.addEventListener('DOMContentLoaded', function() {
+    loadAlerts();
+    
+    // Auto-refresh every 30 seconds
+    setInterval(() => {
+        if (document.visibilityState === 'visible') {
+            loadAlerts();
+        }
+    }, 30000);
+});
+</script>
+{% endblock %}
