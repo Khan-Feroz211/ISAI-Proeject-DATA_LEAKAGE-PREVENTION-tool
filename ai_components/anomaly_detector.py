@@ -1,7 +1,9 @@
+from typing import Optional
+
 # ...existing code...
 class AnomalyDetector:
     """Minimal stub to satisfy imports during startup."""
-    def __init__(self, model_path: str | None = None):
+    def __init__(self, model_path: Optional[str] = None):
         self.model_path = model_path
 
     def predict(self, X):
