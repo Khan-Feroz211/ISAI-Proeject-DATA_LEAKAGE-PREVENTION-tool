@@ -12,3 +12,4 @@ class AnomalyDetector:
             return [0 for _ in X]
         except TypeError:
             return 0
+            
