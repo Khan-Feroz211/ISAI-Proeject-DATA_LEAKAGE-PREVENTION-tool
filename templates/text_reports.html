@@ -1,358 +1,79 @@
 {% extends "base.html" %}
-
-{% block title %}DLP Scanner - Text Reports{% endblock %}
+{% block title %}Text Reports{% endblock %}
+{% block breadcrumb %}Text Reports{% endblock %}
 
 {% block content %}
-<div class="dashboard">
-    <h2>Text Format Reports</h2>
-    <p class="subtitle">Generate comprehensive security reports in text format for easy sharing and documentation</p>
-    
-    <div class="reports-container">
-        <!-- Report Generation Options -->
-        <div class="report-options">
-            <h3>Generate Text Report</h3>
-            
-            <div class="option-cards">
-                <div class="option-card">
-                    <h4>📊 Executive Summary Report</h4>
-                    <p>High-level overview with risk assessment and recommendations</p>
-                    <button onclick="generateSummaryReport()" class="primary-btn">
-                        Generate Summary Report
-                    </button>
-                </div>
-                
-                <div class="option-card">
-                    <h4>🔍 Detailed Technical Report</h4>
-                    <p>Comprehensive technical details of scan results</p>
-                    <button onclick="generateDetailedReport()" class="primary-btn">
-                        Generate Detailed Report
-                    </button>
-                </div>
-                
-                <div class="option-card">
-                    <h4>📁 Latest Scan Report</h4>
-                    <p>Generate report from most recent scan data</p>
-                    <button onclick="generateLatestReport()" class="primary-btn">
-                        Latest Scan Report
-                    </button>
-                </div>
-            </div>
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
+  <div class="lg:col-span-1">
+    <div class="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
+      <h3 class="text-sm font-semibold text-slate-700 mb-4">Generate Text Report</h3>
+      <div class="space-y-3">
+        <div>
+          <label class="block text-xs font-medium text-slate-600 mb-1.5">Report Type</label>
+          <select id="report-type"
+                  class="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500">
+            <option value="summary">Summary Report</option>
+            <option value="detailed">Detailed Report</option>
+          </select>
         </div>
-
-        <!-- Report Output -->
-        <div class="report-output">
-            <div class="output-header">
-                <h3>Generated Report</h3>
-                <div class="output-actions">
-                    <button onclick="downloadReport()" id="download-btn" class="secondary-btn" disabled>
-                        📥 Download .txt File
-                    </button>
-                    <button onclick="copyToClipboard()" id="copy-btn" class="secondary-btn" disabled>
-                        📋 Copy to Clipboard
-                    </button>
-                    <button onclick="clearReport()" class="secondary-btn">
-                        🗑️ Clear
-                    </button>
-                </div>
-            </div>
-            
-            <div class="report-content">
-                <pre id="report-text" class="text-report">
-Select a report type and click generate to create a text format security report.
-The report will appear here and can be downloaded or copied to clipboard.
-                </pre>
-            </div>
-            
-            <div class="report-meta" id="report-meta" style="display: none;">
-                <strong>Report Generated:</strong> <span id="report-time">-</span> | 
-                <strong>Type:</strong> <span id="report-type">-</span> | 
-                <strong>Length:</strong> <span id="report-length">-</span> characters
-            </div>
-        </div>
+        <button onclick="previewReport()"
+                class="w-full py-2.5 bg-brand-500 hover:bg-brand-600 text-white text-sm font-semibold rounded-lg transition-colors">
+          Preview Report
+        </button>
+        <button onclick="downloadReport()"
+                class="w-full py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-semibold rounded-lg transition-colors">
+          ↓ Download .txt
+        </button>
+      </div>
     </div>
+  </div>
+  <div class="lg:col-span-2">
+    <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+      <div class="flex items-center justify-between px-5 py-3 border-b border-slate-100">
+        <h3 class="text-sm font-semibold text-slate-700">Report Preview</h3>
+        <span id="report-ts" class="text-xs text-slate-400"></span>
+      </div>
+      <pre id="report-preview" class="p-5 text-xs font-mono text-slate-600 overflow-auto max-h-[600px] bg-slate-950 text-green-400 rounded-b-xl whitespace-pre-wrap">
+# Click "Preview Report" to generate a text report</pre>
+    </div>
+  </div>
 </div>
+{% endblock %}
 
-<style>
-.reports-container {
-    display: grid;
-    gap: 2rem;
-}
-
-.option-cards {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-    gap: 1.5rem;
-    margin-bottom: 2rem;
-}
-
-.option-card {
-    background: white;
-    padding: 1.5rem;
-    border-radius: 8px;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-    border-left: 4px solid #3498db;
-}
-
-.option-card h4 {
-    margin: 0 0 1rem 0;
-    color: #2c3e50;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-}
-
-.option-card p {
-    color: #7f8c8d;
-    margin-bottom: 1.5rem;
-    line-height: 1.5;
-}
-
-.report-output {
-    background: white;
-    border-radius: 8px;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-    overflow: hidden;
-}
-
-.output-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 1.5rem;
-    border-bottom: 1px solid #ecf0f1;
-    background: #f8f9fa;
-}
-
-.output-actions {
-    display: flex;
-    gap: 0.5rem;
-}
-
-.report-content {
-    padding: 0;
-}
-
-.text-report {
-    background: #2c3e50;
-    color: #ecf0f1;
-    padding: 2rem;
-    margin: 0;
-    border-radius: 0;
-    font-family: 'Courier New', monospace;
-    font-size: 0.9rem;
-    line-height: 1.4;
-    white-space: pre-wrap;
-    word-wrap: break-word;
-    max-height: 600px;
-    overflow-y: auto;
-}
-
-.report-meta {
-    padding: 1rem 1.5rem;
-    background: #ecf0f1;
-    border-top: 1px solid #bdc3c7;
-    font-size: 0.9rem;
-    color: #7f8c8d;
-}
-
-.subtitle {
-    color: #7f8c8d;
-    margin-bottom: 2rem;
-    font-size: 1.1rem;
-}
-
-.loading-report {
-    text-align: center;
-    padding: 3rem;
-    color: #3498db;
-    font-style: italic;
-}
-
-/* Scrollbar styling for report text */
-.text-report::-webkit-scrollbar {
-    width: 8px;
-}
-
-.text-report::-webkit-scrollbar-track {
-    background: #34495e;
-}
-
-.text-report::-webkit-scrollbar-thumb {
-    background: #3498db;
-    border-radius: 4px;
-}
-
-.text-report::-webkit-scrollbar-thumb:hover {
-    background: #2980b9;
-}
-</style>
-
+{% block scripts %}
 <script>
-let currentReport = {
-    content: '',
-    type: '',
-    timestamp: ''
-};
-
-function generateSummaryReport() {
-    generateReport('summary');
+async function previewReport() {
+  const type = document.getElementById('report-type').value;
+  const r = await fetch('/api/report/text', {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ type }),
+  });
+  const d = await r.json();
+  if (d.success) {
+    document.getElementById('report-preview').textContent = d.report || '(empty)';
+    document.getElementById('report-ts').textContent = new Date(d.timestamp).toLocaleString();
+  } else {
+    toast('Error generating report', 'error');
+  }
 }
 
-function generateDetailedReport() {
-    generateReport('detailed');
+async function downloadReport() {
+  const type = document.getElementById('report-type').value;
+  const r = await fetch('/api/report/text/download', {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ type }),
+  });
+  const blob = await r.blob();
+  const cd   = r.headers.get('Content-Disposition') || '';
+  const m    = cd.match(/filename="([^"]+)"/);
+  const fname= m ? m[1] : 'dlp_report.txt';
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = fname;
+  a.click();
+  toast('Report downloaded', 'success');
 }
-
-function generateLatestReport() {
-    // Try to get latest scan results from session or generate new
-    generateReport('latest');
-}
-
-function generateReport(reportType) {
-    const reportElement = document.getElementById('report-text');
-    reportElement.innerHTML = '<div class="loading-report">Generating report... Please wait.</div>';
-    
-    // Disable buttons during generation
-    setButtonsEnabled(false);
-    
-    let endpoint = '/api/report/text';
-    let payload = {};
-    
-    if (reportType === 'detailed') {
-        endpoint = '/api/report/text/detailed';
-        // In a real implementation, you would pass actual scan results
-        payload = { scan_results: [] };
-    } else if (reportType === 'latest') {
-        endpoint = '/api/report/text';
-        // For demo, we'll use empty results which will use system statistics
-        payload = { scan_results: [] };
-    }
-    
-    fetch(endpoint, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(payload)
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            currentReport = {
-                content: data.report,
-                type: reportType,
-                timestamp: data.timestamp
-            };
-            
-            displayReport(data.report, reportType, data.timestamp);
-            setButtonsEnabled(true);
-        } else {
-            throw new Error(data.error || 'Failed to generate report');
-        }
-    })
-    .catch(error => {
-        reportElement.innerHTML = `Error generating report: ${error.message}`;
-        setButtonsEnabled(false);
-    });
-}
-
-function displayReport(content, type, timestamp) {
-    const reportElement = document.getElementById('report-text');
-    const metaElement = document.getElementById('report-meta');
-    const timeElement = document.getElementById('report-time');
-    const typeElement = document.getElementById('report-type');
-    const lengthElement = document.getElementById('report-length');
-    
-    // Display the report content
-    reportElement.textContent = content;
-    
-    // Update metadata
-    const reportTime = new Date(timestamp).toLocaleString();
-    timeElement.textContent = reportTime;
-    typeElement.textContent = type.charAt(0).toUpperCase() + type.slice(1);
-    lengthElement.textContent = content.length.toLocaleString();
-    
-    // Show metadata
-    metaElement.style.display = 'block';
-}
-
-function downloadReport() {
-    if (!currentReport.content) {
-        alert('No report content to download');
-        return;
-    }
-    
-    const blob = new Blob([currentReport.content], { type: 'text/plain; charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    
-    const timestamp = new Date().toISOString().split('T')[0];
-    const type = currentReport.type || 'security';
-    a.href = url;
-    a.download = `dlp_${type}_report_${timestamp}.txt`;
-    
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-}
-
-function copyToClipboard() {
-    if (!currentReport.content) {
-        alert('No report content to copy');
-        return;
-    }
-    
-    navigator.clipboard.writeText(currentReport.content).then(() => {
-        // Show temporary success message
-        const btn = document.getElementById('copy-btn');
-        const originalText = btn.innerHTML;
-        btn.innerHTML = '✅ Copied!';
-        btn.style.background = '#27ae60';
-        
-        setTimeout(() => {
-            btn.innerHTML = originalText;
-            btn.style.background = '';
-        }, 2000);
-    }).catch(err => {
-        alert('Failed to copy to clipboard: ' + err);
-    });
-}
-
-function clearReport() {
-    const reportElement = document.getElementById('report-text');
-    const metaElement = document.getElementById('report-meta');
-    
-    reportElement.innerHTML = 'Select a report type and click generate to create a text format security report.\nThe report will appear here and can be downloaded or copied to clipboard.';
-    metaElement.style.display = 'none';
-    
-    currentReport = {
-        content: '',
-        type: '',
-        timestamp: ''
-    };
-    
-    setButtonsEnabled(false);
-}
-
-function setButtonsEnabled(enabled) {
-    const downloadBtn = document.getElementById('download-btn');
-    const copyBtn = document.getElementById('copy-btn');
-    
-    downloadBtn.disabled = !enabled;
-    copyBtn.disabled = !enabled;
-    
-    if (enabled) {
-        downloadBtn.style.opacity = '1';
-        copyBtn.style.opacity = '1';
-    } else {
-        downloadBtn.style.opacity = '0.6';
-        copyBtn.style.opacity = '0.6';
-    }
-}
-
-// Initialize page
-document.addEventListener('DOMContentLoaded', function() {
-    setButtonsEnabled(false);
-});
 </script>
 {% endblock %}
