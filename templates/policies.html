@@ -1,13 +1,208 @@
 {% extends "base.html" %}
-
-{% block title %}DLP Scanner - Policies{% endblock %}
+{% block title %}Policies{% endblock %}
+{% block breadcrumb %}Policies{% endblock %}
 
 {% block content %}
-<div class="dashboard">
-    <h2>Policies</h2>
-    <div class="stat-card">
-        <p>Policies page is under development</p>
-        <p>This functionality will be implemented soon.</p>
-    </div>
+<div class="flex items-center justify-between mb-5">
+  <div>
+    <h2 class="text-lg font-semibold text-slate-800">DLP Policies</h2>
+    <p class="text-sm text-slate-500 mt-0.5">Define what data patterns trigger alerts</p>
+  </div>
+  <button onclick="openModal()"
+          class="flex items-center gap-2 px-4 py-2 bg-brand-500 hover:bg-brand-600 text-white text-sm font-semibold rounded-lg transition-colors">
+    <i data-lucide="plus" class="w-4 h-4"></i> New Policy
+  </button>
 </div>
+
+<!-- Table -->
+<div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+  <table class="w-full text-sm">
+    <thead class="bg-slate-50 border-b border-slate-200">
+      <tr>
+        <th class="text-left px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Policy</th>
+        <th class="text-left px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Pattern Type</th>
+        <th class="text-left px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Severity</th>
+        <th class="text-left px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Action</th>
+        <th class="text-left px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Status</th>
+        <th class="px-5 py-3"></th>
+      </tr>
+    </thead>
+    <tbody id="policy-tbody">
+      <tr><td colspan="6" class="text-center py-10 text-slate-400">Loading…</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- Modal -->
+<div id="modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+  <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg p-6">
+    <div class="flex items-center justify-between mb-5">
+      <h3 class="text-base font-semibold text-slate-800" id="modal-title">New Policy</h3>
+      <button onclick="closeModal()" class="text-slate-400 hover:text-slate-600">
+        <i data-lucide="x" class="w-5 h-5"></i>
+      </button>
+    </div>
+    <form id="policy-form" class="space-y-4">
+      <input type="hidden" id="policy-id" />
+      <div class="grid grid-cols-2 gap-4">
+        <div class="col-span-2">
+          <label class="block text-xs font-medium text-slate-600 mb-1">Policy Name *</label>
+          <input id="p-name" required class="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500" />
+        </div>
+        <div class="col-span-2">
+          <label class="block text-xs font-medium text-slate-600 mb-1">Description</label>
+          <textarea id="p-desc" rows="2" class="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 resize-none"></textarea>
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-slate-600 mb-1">Pattern Type *</label>
+          <select id="p-type" class="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500">
+            <option value="credit_card">Credit Card</option>
+            <option value="ssn">SSN</option>
+            <option value="email">Email Address</option>
+            <option value="phone">Phone Number</option>
+            <option value="api_key">API Key</option>
+            <option value="password">Password</option>
+            <option value="custom">Custom Regex</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-slate-600 mb-1">Severity *</label>
+          <select id="p-severity" class="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500">
+            <option value="critical">Critical</option>
+            <option value="high" selected>High</option>
+            <option value="medium">Medium</option>
+            <option value="low">Low</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-slate-600 mb-1">Action</label>
+          <select id="p-action" class="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500">
+            <option value="alert">Alert</option>
+            <option value="block">Block</option>
+            <option value="redact">Redact</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-slate-600 mb-1">Enabled</label>
+          <select id="p-active" class="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500">
+            <option value="true">Yes</option>
+            <option value="false">No</option>
+          </select>
+        </div>
+        <div class="col-span-2" id="regex-row" style="display:none">
+          <label class="block text-xs font-medium text-slate-600 mb-1">Regex Pattern</label>
+          <input id="p-regex" class="w-full px-3 py-2 text-sm font-mono border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500" placeholder="\b\d{3}-\d{2}-\d{4}\b" />
+        </div>
+      </div>
+      <div class="flex gap-3 pt-2">
+        <button type="button" onclick="closeModal()"
+                class="flex-1 py-2 text-sm text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg font-medium transition-colors">Cancel</button>
+        <button type="submit"
+                class="flex-1 py-2 text-sm text-white bg-brand-500 hover:bg-brand-600 rounded-lg font-semibold transition-colors">Save</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const SEV_BADGE = {
+  critical:'bg-red-100 text-red-700', high:'bg-orange-100 text-orange-700',
+  medium:'bg-yellow-100 text-yellow-600', low:'bg-green-100 text-green-700'
+};
+let editId = null;
+
+async function loadPolicies() {
+  const r = await fetch('/api/policies');
+  const d = await r.json();
+  const policies = d.policies || [];
+  const tbody = document.getElementById('policy-tbody');
+  if (!policies.length) {
+    tbody.innerHTML = '<tr><td colspan="6" class="text-center py-10 text-slate-400">No policies yet — create one above</td></tr>';
+    return;
+  }
+  tbody.innerHTML = policies.map(p => `
+    <tr class="border-t border-slate-100 hover:bg-slate-50 transition-colors">
+      <td class="px-5 py-3">
+        <p class="font-medium text-slate-800">${p.name}</p>
+        <p class="text-xs text-slate-400 mt-0.5">${p.description||''}</p>
+      </td>
+      <td class="px-5 py-3 text-slate-600">${p.pattern_type}</td>
+      <td class="px-5 py-3">
+        <span class="text-xs font-bold px-2 py-0.5 rounded-full ${SEV_BADGE[p.severity]||SEV_BADGE.low}">${p.severity.toUpperCase()}</span>
+      </td>
+      <td class="px-5 py-3 text-slate-600 capitalize">${p.action}</td>
+      <td class="px-5 py-3">
+        <span class="text-xs font-medium px-2 py-0.5 rounded-full ${p.is_active?'bg-green-100 text-green-700':'bg-slate-100 text-slate-500'}">
+          ${p.is_active ? 'Active' : 'Disabled'}
+        </span>
+      </td>
+      <td class="px-5 py-3 flex gap-1.5 justify-end">
+        <button onclick='editPolicy(${JSON.stringify(p)})' class="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-brand-500 transition-colors">
+          <i data-lucide="pencil" class="w-3.5 h-3.5"></i>
+        </button>
+        <button onclick="deletePolicy(${p.id})" class="p-1.5 rounded-lg hover:bg-red-50 text-slate-400 hover:text-red-500 transition-colors">
+          <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+        </button>
+      </td>
+    </tr>`).join('');
+  lucide.createIcons();
+}
+
+function openModal(p = null) {
+  editId = p ? p.id : null;
+  document.getElementById('modal-title').textContent = p ? 'Edit Policy' : 'New Policy';
+  document.getElementById('p-name').value    = p?.name || '';
+  document.getElementById('p-desc').value    = p?.description || '';
+  document.getElementById('p-type').value    = p?.pattern_type || 'credit_card';
+  document.getElementById('p-severity').value= p?.severity || 'high';
+  document.getElementById('p-action').value  = p?.action || 'alert';
+  document.getElementById('p-active').value  = p ? String(p.is_active) : 'true';
+  document.getElementById('p-regex').value   = p?.regex_pattern || '';
+  toggleRegex();
+  document.getElementById('modal').classList.remove('hidden');
+}
+function closeModal() { document.getElementById('modal').classList.add('hidden'); }
+function editPolicy(p) { openModal(p); }
+
+function toggleRegex() {
+  const show = document.getElementById('p-type').value === 'custom';
+  document.getElementById('regex-row').style.display = show ? '' : 'none';
+}
+document.getElementById('p-type').addEventListener('change', toggleRegex);
+
+async function deletePolicy(id) {
+  if (!confirm('Delete this policy?')) return;
+  await fetch(`/api/policies/${id}`, { method:'DELETE' });
+  toast('Policy deleted', 'info');
+  loadPolicies();
+}
+
+document.getElementById('policy-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const payload = {
+    name:          document.getElementById('p-name').value,
+    description:   document.getElementById('p-desc').value,
+    pattern_type:  document.getElementById('p-type').value,
+    severity:      document.getElementById('p-severity').value,
+    action:        document.getElementById('p-action').value,
+    is_active:     document.getElementById('p-active').value === 'true',
+    regex_pattern: document.getElementById('p-regex').value || null,
+  };
+  const url    = editId ? `/api/policies/${editId}` : '/api/policies';
+  const method = editId ? 'PUT' : 'POST';
+  const r = await fetch(url, { method, headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload) });
+  const d = await r.json();
+  if (d.success || d.policy) {
+    toast(editId ? 'Policy updated' : 'Policy created', 'success');
+    closeModal();
+    loadPolicies();
+  } else {
+    toast('Error: ' + JSON.stringify(d.error), 'error');
+  }
+});
+
+loadPolicies();
+</script>
 {% endblock %}

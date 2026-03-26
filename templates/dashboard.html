@@ -1,70 +1,209 @@
 {% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+{% block breadcrumb %}Dashboard{% endblock %}
 
 {% block content %}
-<div class="dashboard">
-    <h2>Security Dashboard</h2>
-    
-    <div class="stats">
-        <div class="stat-card">
-            <h3>Files Scanned</h3>
-            <p id="files-scanned">0</p>
-        </div>
-        <div class="stat-card">
-            <h3>Sensitive Files Found</h3>
-            <p id="sensitive-files">0</p>
-        </div>
-        <div class="stat-card">
-            <h3>Last Scan</h3>
-            <p id="last-scan">Never</p>
-        </div>
-        <div class="stat-card">
-            <h3>System Status</h3>
-            <p id="system-status">Operational</p>
-        </div>
+<!-- KPI cards -->
+<div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+
+  <div class="bg-white rounded-xl border border-slate-200 p-5 shadow-sm hover:shadow-md transition-shadow">
+    <div class="flex items-start justify-between">
+      <div>
+        <p class="text-xs font-medium text-slate-500 uppercase tracking-wide">Total Scans</p>
+        <p id="kpi-scans" class="text-3xl font-bold text-slate-800 mt-1">—</p>
+      </div>
+      <div class="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center">
+        <i data-lucide="scan-search" class="w-5 h-5 text-blue-500"></i>
+      </div>
     </div>
-    
-    <div class="actions">
-        <button onclick="location.href='{{ url_for('scanner') }}'">Start File Scan</button>
-        <button onclick="location.href='{{ url_for('monitor') }}'">Start Monitoring</button>
-        <button onclick="generateReport()">Generate Report</button>
+    <p class="text-xs text-slate-400 mt-3">All-time scan jobs</p>
+  </div>
+
+  <div class="bg-white rounded-xl border border-slate-200 p-5 shadow-sm hover:shadow-md transition-shadow">
+    <div class="flex items-start justify-between">
+      <div>
+        <p class="text-xs font-medium text-slate-500 uppercase tracking-wide">Open Alerts</p>
+        <p id="kpi-alerts" class="text-3xl font-bold text-slate-800 mt-1">—</p>
+      </div>
+      <div class="w-10 h-10 rounded-xl bg-red-50 flex items-center justify-center">
+        <i data-lucide="bell" class="w-5 h-5 text-red-500"></i>
+      </div>
     </div>
+    <p class="text-xs text-slate-400 mt-3">Requiring attention</p>
+  </div>
+
+  <div class="bg-white rounded-xl border border-slate-200 p-5 shadow-sm hover:shadow-md transition-shadow">
+    <div class="flex items-start justify-between">
+      <div>
+        <p class="text-xs font-medium text-slate-500 uppercase tracking-wide">Sensitive Files</p>
+        <p id="kpi-sensitive" class="text-3xl font-bold text-slate-800 mt-1">—</p>
+      </div>
+      <div class="w-10 h-10 rounded-xl bg-orange-50 flex items-center justify-center">
+        <i data-lucide="file-warning" class="w-5 h-5 text-orange-500"></i>
+      </div>
+    </div>
+    <p class="text-xs text-slate-400 mt-3">Flagged by DLP engine</p>
+  </div>
+
+  <div class="bg-white rounded-xl border border-slate-200 p-5 shadow-sm hover:shadow-md transition-shadow">
+    <div class="flex items-start justify-between">
+      <div>
+        <p class="text-xs font-medium text-slate-500 uppercase tracking-wide">Critical Alerts</p>
+        <p id="kpi-critical" class="text-3xl font-bold text-red-600 mt-1">—</p>
+      </div>
+      <div class="w-10 h-10 rounded-xl bg-red-50 flex items-center justify-center">
+        <i data-lucide="shield-alert" class="w-5 h-5 text-red-600"></i>
+      </div>
+    </div>
+    <p class="text-xs text-slate-400 mt-3">Needs immediate action</p>
+  </div>
+
 </div>
 
+<!-- Charts row -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
+  <div class="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
+    <div class="flex items-center justify-between mb-4">
+      <h3 class="text-sm font-semibold text-slate-700">Scans &amp; Alerts — Last 7 Days</h3>
+      <span class="text-xs text-slate-400">Daily trend</span>
+    </div>
+    <canvas id="trend-chart" height="180"></canvas>
+  </div>
+
+  <div class="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
+    <div class="flex items-center justify-between mb-4">
+      <h3 class="text-sm font-semibold text-slate-700">Alert Severity Breakdown</h3>
+      <span class="text-xs text-slate-400">Current</span>
+    </div>
+    <canvas id="severity-chart" height="180"></canvas>
+  </div>
+</div>
+
+<!-- Quick actions + recent alerts -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+
+  <!-- Quick actions -->
+  <div class="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
+    <h3 class="text-sm font-semibold text-slate-700 mb-4">Quick Actions</h3>
+    <div class="space-y-2">
+      <a href="{{ url_for('scanner') }}"
+         class="flex items-center gap-3 p-3 rounded-lg bg-brand-50 hover:bg-brand-100
+                text-brand-700 text-sm font-medium transition-colors">
+        <i data-lucide="scan-search" class="w-4 h-4"></i> Start New Scan
+      </a>
+      <a href="{{ url_for('alerts') }}"
+         class="flex items-center gap-3 p-3 rounded-lg bg-slate-50 hover:bg-slate-100
+                text-slate-700 text-sm font-medium transition-colors">
+        <i data-lucide="bell" class="w-4 h-4"></i> View All Alerts
+      </a>
+      <a href="{{ url_for('reports') }}"
+         class="flex items-center gap-3 p-3 rounded-lg bg-slate-50 hover:bg-slate-100
+                text-slate-700 text-sm font-medium transition-colors">
+        <i data-lucide="file-bar-chart" class="w-4 h-4"></i> Generate Report
+      </a>
+      <a href="{{ url_for('mlops') }}"
+         class="flex items-center gap-3 p-3 rounded-lg bg-slate-50 hover:bg-slate-100
+                text-slate-700 text-sm font-medium transition-colors">
+        <i data-lucide="brain-circuit" class="w-4 h-4"></i> MLOps Dashboard
+      </a>
+    </div>
+  </div>
+
+  <!-- Recent alerts -->
+  <div class="lg:col-span-2 bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
+    <div class="flex items-center justify-between mb-4">
+      <h3 class="text-sm font-semibold text-slate-700">Recent Alerts</h3>
+      <a href="{{ url_for('alerts') }}" class="text-xs text-brand-500 hover:text-brand-600 font-medium">View all →</a>
+    </div>
+    <div id="recent-alerts" class="space-y-2">
+      <div class="text-center py-8 text-slate-400 text-sm">Loading…</div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
 <script>
-// Load stats on page load
-function loadStats() {
-    fetch('/api/stats')
-        .then(response => response.json())
-        .then(data => {
-            if (data.statistics) {
-                document.getElementById('files-scanned').textContent = data.statistics.files_scanned || 0;
-                document.getElementById('sensitive-files').textContent = data.statistics.sensitive_files_found || 0;
-                document.getElementById('last-scan').textContent = data.statistics.last_scan ? new Date(data.statistics.last_scan).toLocaleString() : 'Never';
-            }
-        })
-        .catch(error => {
-            console.error('Error loading stats:', error);
-            document.getElementById('system-status').textContent = 'Error';
-            document.getElementById('system-status').style.color = 'red';
-        });
+let trendChart, severityChart;
+
+const COLORS = {
+  critical:'#ef4444', high:'#f97316', medium:'#f59e0b', low:'#a3e635'
+};
+
+async function loadDashboard() {
+  try {
+    const r = await fetch('/api/stats');
+    const d = await r.json();
+    const s = d.statistics || {};
+    document.getElementById('kpi-scans').textContent    = s.total_scans      ?? 0;
+    document.getElementById('kpi-alerts').textContent   = s.open_alerts       ?? 0;
+    document.getElementById('kpi-sensitive').textContent= s.sensitive_files_found ?? 0;
+    document.getElementById('kpi-critical').textContent = s.critical_alerts   ?? 0;
+
+    // Trend chart
+    const c = d.chart || {};
+    if (trendChart) trendChart.destroy();
+    const ctx1 = document.getElementById('trend-chart').getContext('2d');
+    trendChart = new Chart(ctx1, {
+      type: 'bar',
+      data: {
+        labels: (c.labels||[]).map(l => l.slice(5)),
+        datasets: [
+          { label:'Scans',  data:c.scans  ||[], backgroundColor:'rgba(99,102,241,.6)', borderRadius:4 },
+          { label:'Alerts', data:c.alerts ||[], backgroundColor:'rgba(239,68,68,.6)',  borderRadius:4 },
+        ],
+      },
+      options: { responsive:true, plugins:{ legend:{ position:'bottom' } },
+                 scales:{ y:{ beginAtZero:true, ticks:{ stepSize:1 } } } },
+    });
+
+    // Severity doughnut
+    const ar = await fetch('/api/alerts');
+    const ad = await ar.json();
+    const counts = ad.counts || {};
+    if (severityChart) severityChart.destroy();
+    const ctx2 = document.getElementById('severity-chart').getContext('2d');
+    severityChart = new Chart(ctx2, {
+      type: 'doughnut',
+      data: {
+        labels: ['Critical','High','Medium','Low'],
+        datasets: [{
+          data: [counts.critical||0, counts.high||0, counts.medium||0, counts.low||0],
+          backgroundColor: [COLORS.critical, COLORS.high, COLORS.medium, COLORS.low],
+          borderWidth: 0,
+        }],
+      },
+      options: { responsive:true, cutout:'70%',
+                 plugins:{ legend:{ position:'right' } } },
+    });
+
+    // Recent alerts
+    const recent = (ad.alerts || []).slice(0, 5);
+    const container = document.getElementById('recent-alerts');
+    if (!recent.length) {
+      container.innerHTML = '<p class="text-center py-6 text-slate-400 text-sm">No alerts yet</p>';
+      return;
+    }
+    container.innerHTML = recent.map(a => `
+      <div class="flex items-start gap-3 p-3 rounded-lg border border-slate-100 hover:border-slate-200 transition-colors">
+        <span class="mt-0.5 inline-flex w-2.5 h-2.5 rounded-full flex-shrink-0"
+              style="background:${COLORS[a.severity]||'#94a3b8'}"></span>
+        <div class="flex-1 min-w-0">
+          <p class="text-sm font-medium text-slate-700 truncate">${a.title}</p>
+          <p class="text-xs text-slate-400 mt-0.5">${a.file_path || ''}</p>
+        </div>
+        <span class="text-xs px-2 py-0.5 rounded-full font-semibold flex-shrink-0"
+              style="background:${COLORS[a.severity]}20;color:${COLORS[a.severity]}">${a.severity}</span>
+      </div>`).join('');
+  } catch(e) {
+    console.error(e);
+  }
 }
 
-function generateReport() {
-    fetch('/api/report/generate', { method: 'POST' })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                alert('Report generated successfully!');
-            } else {
-                alert('Error generating report: ' + (data.error || 'Unknown error'));
-            }
-        })
-        .catch(error => {
-            alert('Error generating report: ' + error);
-        });
-}
-
-// Load stats when page loads
-loadStats();
+loadDashboard();
+setInterval(loadDashboard, 30000);
+lucide.createIcons();
 </script>
 {% endblock %}

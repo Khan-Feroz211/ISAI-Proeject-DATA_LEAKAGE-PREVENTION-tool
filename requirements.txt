@@ -1,32 +1,50 @@
+# ── Web Framework ────────────────────────────────────────────────────────────
 Flask==2.3.3
 Werkzeug==2.3.7
 gunicorn==20.1.0
-python-magic==0.4.27
+
+# ── Database ─────────────────────────────────────────────────────────────────
+Flask-SQLAlchemy==3.1.1
+Flask-Migrate==4.1.0
+
+# ── Authentication ────────────────────────────────────────────────────────────
+Flask-Login==0.6.3
+
+# ── Configuration ────────────────────────────────────────────────────────────
+python-dotenv==1.2.2
 PyYAML==6.0.1
-regex==2023.12.25
-tldextract==5.1.2
+
+# ── Background Jobs ───────────────────────────────────────────────────────────
+APScheduler==3.11.2
+
+# ── ML / Data Science ────────────────────────────────────────────────────────
 numpy==1.26.4
 pandas==2.2.0
 scikit-learn==1.4.0
 joblib==1.5.2
-requests==2.31.0
+
+# ── Text / File Handling ─────────────────────────────────────────────────────
+python-magic==0.4.27
+regex==2023.12.25
+tldextract==5.1.2
+openpyxl==3.1.2
+lxml==5.2.1
 python-dateutil==2.9.0
+
+# ── Monitoring & Utilities ────────────────────────────────────────────────────
 watchdog==3.0.0
+psutil==5.9.8
+tqdm==4.66.2
 rich==13.7.1
-# Kaggle Integration
+requests==2.31.0
+
+# ── Validation & Serialisation ────────────────────────────────────────────────
+jsonschema==4.20.0
+
+# ── Kaggle (optional – remove if unused) ─────────────────────────────────────
 kaggle==1.6.12
 kagglehub==0.2.1
 
-# Data Processing
-pandas==2.2.0
-numpy==1.26.4
-openpyxl==3.1.2
-lxml==5.2.1
-
-# Security & Runtime
-python-magic==0.4.27
-pickle-mixin==1.0.2
-jsonschema==4.20.0
-psutil==5.9.8
-tqdm==4.66.2
-watchdog==3.0.0
+# ── Dev / Test ────────────────────────────────────────────────────────────────
+pytest==8.1.1
+pytest-flask==1.3.0
