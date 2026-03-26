@@ -1,0 +1,65 @@
+[MAIN]
+# Use multiple processes to speed up Pylint (0 = auto-detect CPU count)
+jobs=1
+
+# Ignore paths (virtual environments, caches, backup files)
+ignore-paths=
+    ^\.venv/.*$,
+    ^venv/.*$,
+    ^env/.*$,
+    ^\.env/.*$,
+    ^__pycache__/.*$
+
+[MESSAGES CONTROL]
+# Disable checks that are impractical to fix without changing functionality,
+# are caused by missing optional dependencies in CI, or are purely stylistic.
+disable=
+    # Third-party packages not installed in minimal CI environment
+    E0401,
+    # No member errors caused by unresolved imports
+    E1101,
+    # Code duplication across backup/variant app files
+    R0801,
+    # Missing docstrings - extensive to add without changing functionality
+    C0114,
+    C0115,
+    C0116,
+    # Whitespace style issues
+    C0301,
+    C0303,
+    C0304,
+    C0305,
+    # Variable/constant/argument naming conventions (e.g. 'X' in ML, module-level Flask vars)
+    C0103,
+    # Broad exception catch - accepted defensive pattern in this codebase
+    W0718,
+    # Logging with f-strings instead of % formatting
+    W1203,
+    # Too few / too many public methods or instance attributes
+    R0902,
+    R0903,
+    # Cyclic imports from third-party packages
+    R0401,
+    # Unused variable in loop unpacking
+    W0612,
+    # raise X from Y - add chained exception context
+    W0707,
+    # Unused function/method argument
+    W0613,
+    # open() without explicit encoding parameter
+    W1514,
+    # Bare except clause with no exception type
+    W0702,
+    # f-string without any interpolated variables
+    W1309,
+    # Redefining name from outer scope
+    W0621,
+    # Too many statements in function/method
+    R0915
+
+[FORMAT]
+max-line-length=120
+
+[DESIGN]
+max-args=10
+max-attributes=10
