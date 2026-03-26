@@ -14,7 +14,7 @@ RUN apt-get update && \
 WORKDIR /app
 
 # Copy only requirements first for better cache
-COPY ISAIproject/requirements.txt /app/requirements.txt
+COPY requirements.txt /app/requirements.txt
 RUN pip install --no-cache-dir -r /app/requirements.txt
 
 # copy project (don't attempt to pip-install the project root without pyproject/setup)

@@ -1,6 +1,7 @@
-from flask import Flask, render_template, request, jsonify, send_file
+from flask import Flask, render_template, request, jsonify, Response
 import os
 import logging
+from datetime import datetime
 from pathlib import Path
 from dlp_engine import DLPEngine
 
@@ -146,35 +147,28 @@ def api_health():
     except Exception as e:
         return jsonify({'status': 'error', 'message': str(e)}), 500
 
-if __name__ == '__main__':
-    # Create necessary directories
-    os.makedirs('reports', exist_ok=True)
-    os.makedirs('data/input', exist_ok=True)
-    os.makedirs('data/output', exist_ok=True)
-    
-    app.run(host='0.0.0.0', port=5000, debug=True)
-
 @app.route('/api/report/text', methods=['POST'])
 def api_generate_text_report():
     """Generate and return a text format security report"""
     try:
         if not dlp_engine:
             return jsonify({'error': 'dlp_engine_not_initialized'}), 500
-        
+
         data = request.json or {}
         scan_results = data.get('scan_results')
-        
+
         text_report = dlp_engine.generate_text_report(scan_results)
-        
+
         return jsonify({
             'success': True,
             'report': text_report,
             'format': 'text',
             'timestamp': datetime.now().isoformat()
         })
-        
+
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
 
 @app.route('/api/report/text/detailed', methods=['POST'])
 def api_generate_detailed_text_report():
@@ -182,24 +176,25 @@ def api_generate_detailed_text_report():
     try:
         if not dlp_engine:
             return jsonify({'error': 'dlp_engine_not_initialized'}), 500
-        
+
         data = request.json or {}
         scan_results = data.get('scan_results', [])
-        
+
         if not scan_results:
             return jsonify({'error': 'No scan results provided'}), 400
-        
+
         detailed_report = dlp_engine.generate_detailed_scan_report(scan_results)
-        
+
         return jsonify({
             'success': True,
             'report': detailed_report,
             'format': 'text',
             'timestamp': datetime.now().isoformat()
         })
-        
+
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
 
 @app.route('/api/report/text/download', methods=['POST'])
 def api_download_text_report():
@@ -207,34 +202,42 @@ def api_download_text_report():
     try:
         if not dlp_engine:
             return jsonify({'error': 'dlp_engine_not_initialized'}), 500
-        
+
         data = request.json or {}
         scan_results = data.get('scan_results')
         report_type = data.get('type', 'summary')
-        
+
         if report_type == 'detailed':
             report_content = dlp_engine.generate_detailed_scan_report(scan_results or [])
             filename = f"dlp_detailed_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt"
         else:
             report_content = dlp_engine.generate_text_report(scan_results)
             filename = f"dlp_security_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt"
-        
-        # Create response with text file
-        from flask import Response
+
         response = Response(
             report_content,
             mimetype="text/plain",
             headers={
-                "Content-Disposition": f"attachment;filename={filename}",
+                "Content-Disposition": f'attachment; filename="{filename}"',
                 "Content-Type": "text/plain; charset=utf-8"
             }
         )
-        
+
         return response
-        
+
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
 
 @app.route('/text_reports')
 def text_reports():
     return render_template('text_reports.html')
+
+
+if __name__ == '__main__':
+    # Create necessary directories
+    os.makedirs('reports', exist_ok=True)
+    os.makedirs('data/input', exist_ok=True)
+    os.makedirs('data/output', exist_ok=True)
+
+    app.run(host='0.0.0.0', port=5000, debug=False)
