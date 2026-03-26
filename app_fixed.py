@@ -1,7 +1,9 @@
-from flask import Flask, render_template, request, jsonify
-import os
 import logging
+import os
+from datetime import datetime
 from pathlib import Path
+
+from flask import Flask, render_template, request, jsonify, Response
 from dlp_engine import DLPEngine
 
 # Initialize Flask app
@@ -272,7 +274,6 @@ def api_download_text_report():
             filename = f"dlp_security_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt"
         
         # Create response with text file
-        from flask import Response
         response = Response(
             report_content,
             mimetype="text/plain",

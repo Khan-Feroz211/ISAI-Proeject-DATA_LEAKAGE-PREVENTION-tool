@@ -1,8 +1,7 @@
-import sys
 import os
 
 try:
-    import google.colab
+    import google.colab  # pylint: disable=unused-import
     print('🚀 You are in GOOGLE COLAB')
     print('   Files are in the cloud, not on local disk')
     
