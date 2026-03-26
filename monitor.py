@@ -1,11 +1,12 @@
-import threading
-from pathlib import Path
-from alert_system import AlertSystem
-from dlp_engine import DLPEngine
+import logging
 import os
 import re
-import logging
+import threading
 import time
+from pathlib import Path
+
+from alert_system import AlertSystem
+from dlp_engine import DLPEngine
 
 class BootnetMonitor:
     LEAKAGE_PATTERNS = {

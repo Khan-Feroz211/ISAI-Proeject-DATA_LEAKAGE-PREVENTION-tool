@@ -1,7 +1,7 @@
 import logging
+from pathlib import Path
 
 import yaml
-from pathlib import Path
 
 class ConfigLoader:
     @staticmethod

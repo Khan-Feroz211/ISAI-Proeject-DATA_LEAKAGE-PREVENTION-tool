@@ -29,10 +29,6 @@ disable=
     C0303,
     C0304,
     C0305,
-    # Import ordering (standard library vs third-party)
-    C0411,
-    # Import outside top-level (flask.Response used inline)
-    C0415,
     # Variable/constant/argument naming conventions (e.g. 'X' in ML, module-level Flask vars)
     C0103,
     # Broad exception catch - accepted defensive pattern in this codebase
