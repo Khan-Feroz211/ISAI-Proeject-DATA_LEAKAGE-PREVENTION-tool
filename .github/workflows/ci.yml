@@ -1,0 +1,70 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [main, master, develop]
+  pull_request:
+    branches: [main, master]
+
+# Restrict default token permissions for all jobs
+permissions:
+  contents: read
+
+jobs:
+  # ── Lint ──────────────────────────────────────────────────────────────────
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.11" }
+      - run: pip install pylint==3.1.0
+      - run: |
+          pylint app.py dlp_engine.py models.py database.py \
+                 ai_components/ mlops/ \
+                 --disable=C0111,R0903 --fail-under=6 || true
+
+  # ── Test ──────────────────────────────────────────────────────────────────
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    needs: lint
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.11" }
+      - run: |
+          sudo apt-get update -q
+          sudo apt-get install -y -q libmagic1
+      - run: pip install -r requirements.txt
+      - run: pytest tests/ -v --tb=short
+        env:
+          SECRET_KEY: test-secret-key
+          DATABASE_URL: "sqlite:///test_dlp.db"
+          ADMIN_PASSWORD: testpass
+
+  # ── Docker Build ──────────────────────────────────────────────────────────
+  docker:
+    name: Docker Build
+    runs-on: ubuntu-latest
+    needs: test
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build Docker image
+        run: docker build -t shieldai-dlp:${{ github.sha }} .
+      - name: Smoke test container
+        run: |
+          docker run -d --name test-container -p 5000:5000 \
+            -e SECRET_KEY=test -e ADMIN_PASSWORD=test \
+            shieldai-dlp:${{ github.sha }}
+          sleep 15
+          curl -f http://localhost:5000/api/health
+          docker stop test-container
+

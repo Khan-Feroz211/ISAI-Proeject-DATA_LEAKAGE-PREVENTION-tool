@@ -1,6 +1,7 @@
 # src/alert_system.py
 
 import logging
+import os
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
@@ -36,14 +37,15 @@ class AlertSystem:
         {
             "file_path": "/home/user/secrets.txt",
             "pattern_matches": {"credit_card": ["1234-5678-9012-3456"]},
-            "ai_analysis": {"confidence": 0.92},
+            "confidence": 0.92,
             "anomaly_detected": True
         }
         """
         if not self.config.get("enabled", True):
             return
-        
-        confidence = finding.get("ai_analysis", {}).get("confidence", 0)
+
+        # Support both top-level confidence and nested ai_analysis.confidence
+        confidence = finding.get("confidence") or finding.get("ai_analysis", {}).get("confidence", 0)
         if confidence < self.config.get("confidence_threshold", 0.85):
             return
         
@@ -62,7 +64,7 @@ class AlertSystem:
         """Prepare alert message string"""
         file_path = finding.get("file_path", "unknown")
         patterns = finding.get("pattern_matches", {})
-        ai_confidence = finding.get("ai_analysis", {}).get("confidence", 0)
+        ai_confidence = finding.get("confidence") or finding.get("ai_analysis", {}).get("confidence", 0)
         anomaly_detected = finding.get("anomaly_detected", False)
         
         message = f"""
@@ -100,22 +102,23 @@ Recommended Actions:
             smtp_port = self.config.get("smtp_port", 587)
             sender = self.config.get("email_sender", "dlp@example.com")
             recipient = self.config.get("email_recipient", "admin@example.com")
-            password = self.config.get("email_password", "")
-            
+            # Read password from environment variable; fall back to config only as a last resort
+            password = os.environ.get("DLP_SMTP_PASSWORD") or self.config.get("email_password", "")
+
             msg = MIMEMultipart()
             msg["From"] = sender
             msg["To"] = recipient
             msg["Subject"] = "DLP Security Alert"
             msg.attach(MIMEText(message, "plain"))
-            
+
             with smtplib.SMTP(smtp_server, smtp_port) as server:
                 server.starttls()
                 if password:
                     server.login(sender, password)
                 server.send_message(msg)
-            
+
             self.logger.info(f"Email alert sent to {recipient}")
-        
+
         except Exception as e:
             self.logger.error(f"Failed to send email alert: {e}")
 

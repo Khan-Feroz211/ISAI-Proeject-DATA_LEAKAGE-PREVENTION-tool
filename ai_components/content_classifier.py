@@ -14,10 +14,23 @@ class ContentClassifier:
         # Sensitive patterns with compiled regex for better performance
         self.sensitive_patterns = {
             'ssn': re.compile(r'\b\d{3}-\d{2}-\d{4}\b'),
-            'credit_card': re.compile(r'\b\d{4}[- ]?\d{4}[- ]?\d{4}[- ]?\d{4}\b'),
+            # Major card-type prefixes with optional separators between digit groups
+            'credit_card': re.compile(
+                r'\b(?:4[0-9]{3}|5[1-5][0-9]{2}|3[47][0-9]{2}|6011|65[0-9]{2})'
+                r'[- ]?\d{4}[- ]?\d{4}[- ]?\d{4}(?:[- ]?\d{3})?\b'
+            ),
             'email': re.compile(r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b'),
             'phone': re.compile(r'\b\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}\b'),
-            'api_key': re.compile(r'\b[A-Za-z0-9]{32,40}\b'),
+            # Labelled API/secret keys (key=value or key: value form)
+            'api_key': re.compile(
+                r'\b(?:api[_-]?key|access[_-]?key|secret[_-]?key|auth[_-]?token)\s*[=:]\s*[A-Za-z0-9+/._-]{20,}\b',
+                re.IGNORECASE
+            ),
+            # Bare export-style environment variable assignments for common key names
+            'api_key_export': re.compile(
+                r'(?:export\s+)?[A-Z_]*(?:API|SECRET|ACCESS|AUTH)[_A-Z]*KEY[_A-Z]*\s*=\s*[A-Za-z0-9+/._-]{20,}',
+                re.IGNORECASE
+            ),
             'password_mention': re.compile(r'\bpassword\s*[=:]\s*[^\s]+\b', re.IGNORECASE),
             'secret_mention': re.compile(r'\bsecret\s*[=:]\s*[^\s]+\b', re.IGNORECASE)
         }
@@ -63,6 +76,7 @@ class ContentClassifier:
                     count = content_lower.count(keyword)
                     detected_count += count
                     keyword_matches.append({
+                        'type': keyword,
                         'keyword': keyword,
                         'count': count
                     })

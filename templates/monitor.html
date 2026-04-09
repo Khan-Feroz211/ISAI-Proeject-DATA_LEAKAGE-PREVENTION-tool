@@ -1,344 +1,155 @@
 {% extends "base.html" %}
-
-{% block title %}DLP Scanner - Real-time Monitor{% endblock %}
+{% block title %}Monitor{% endblock %}
+{% block breadcrumb %}Monitor{% endblock %}
 
 {% block content %}
-<div class="dashboard">
-    <h2>Real-time File Monitoring</h2>
-    
-    <div class="monitor-container">
-        <!-- Monitor Controls -->
-        <div class="monitor-controls">
-            <h3>Monitoring Configuration</h3>
-            <form id="monitor-form">
-                <div class="form-group">
-                    <label for="monitor-path">Monitor Path:</label>
-                    <input type="text" id="monitor-path" name="path" 
-                           placeholder="/path/to/monitor" value="./data" required>
-                    <small>Directory to monitor for file changes</small>
-                </div>
-                
-                <div class="form-group">
-                    <label for="monitor-interval">Check Interval:</label>
-                    <select id="monitor-interval" name="interval">
-                        <option value="5000">5 seconds</option>
-                        <option value="10000" selected>10 seconds</option>
-                        <option value="30000">30 seconds</option>
-                        <option value="60000">1 minute</option>
-                    </select>
-                </div>
-                
-                <div class="form-group">
-                    <label>
-                        <input type="checkbox" id="monitor-recursive" name="recursive" checked>
-                        Monitor subdirectories
-                    </label>
-                </div>
-                
-                <div class="monitor-actions">
-                    <button type="button" id="start-monitor" class="primary-btn">Start Monitoring</button>
-                    <button type="button" id="stop-monitor" class="secondary-btn" disabled>Stop Monitoring</button>
-                </div>
-            </form>
-        </div>
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
 
-        <!-- Monitor Status -->
-        <div class="monitor-status" id="monitor-status">
-            <h3>Monitoring Status</h3>
-            <div class="status-indicator">
-                <div class="status-dot" id="status-dot"></div>
-                <span id="status-text">Not Monitoring</span>
-            </div>
-            
-            <div class="status-details">
-                <div class="stat-card">
-                    <h3>Files Monitored</h3>
-                    <p id="files-monitored">0</p>
-                </div>
-                <div class="stat-card">
-                    <h3>Changes Detected</h3>
-                    <p id="changes-detected">0</p>
-                </div>
-                <div class="stat-card">
-                    <h3>Sensitive Files</h3>
-                    <p id="monitor-sensitive">0</p>
-                </div>
-            </div>
+  <!-- Config -->
+  <div class="lg:col-span-1 space-y-4">
+    <div class="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
+      <div class="flex items-center gap-2 mb-4">
+        <div class="w-8 h-8 rounded-lg bg-green-50 flex items-center justify-center">
+          <i data-lucide="activity" class="w-4 h-4 text-green-600"></i>
         </div>
-
-        <!-- Real-time Events -->
-        <div class="monitor-events">
-            <h3>Real-time Events</h3>
-            <div class="events-controls">
-                <button onclick="clearEvents()" class="secondary-btn">Clear Events</button>
-                <button onclick="exportEvents()" class="secondary-btn">Export Log</button>
-            </div>
-            <div id="events-list" class="events-list">
-                <div class="empty-state">No events yet. Start monitoring to see file changes.</div>
-            </div>
+        <h2 class="text-sm font-semibold text-slate-700">Real-Time Monitor</h2>
+      </div>
+      <div class="space-y-3">
+        <div>
+          <label class="block text-xs font-medium text-slate-600 mb-1.5">Watch Directory</label>
+          <input id="watch-path" type="text" value="/home"
+                 class="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500"
+                 placeholder="/path/to/watch" />
         </div>
+        <button id="start-btn" onclick="startMonitor()"
+                class="w-full py-2.5 bg-green-500 hover:bg-green-600 text-white text-sm font-semibold rounded-lg transition-colors">
+          ▶ Start Monitoring
+        </button>
+        <button id="stop-btn" onclick="stopMonitor()" disabled
+                class="w-full py-2.5 bg-slate-200 text-slate-400 text-sm font-semibold rounded-lg cursor-not-allowed transition-colors">
+          ■ Stop Monitoring
+        </button>
+      </div>
     </div>
+
+    <!-- Status -->
+    <div class="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
+      <h3 class="text-sm font-semibold text-slate-700 mb-3">Monitor Status</h3>
+      <div class="space-y-2">
+        <div class="flex justify-between text-sm">
+          <span class="text-slate-500">Status</span>
+          <span id="monitor-status" class="font-medium text-slate-400">Idle</span>
+        </div>
+        <div class="flex justify-between text-sm">
+          <span class="text-slate-500">Events detected</span>
+          <span id="event-count" class="font-medium text-slate-700">0</span>
+        </div>
+        <div class="flex justify-between text-sm">
+          <span class="text-slate-500">Watching</span>
+          <span id="watching-path" class="font-medium text-slate-700 truncate max-w-32">—</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Event log -->
+  <div class="lg:col-span-2">
+    <div class="bg-white rounded-xl border border-slate-200 shadow-sm h-full flex flex-col">
+      <div class="flex items-center justify-between px-5 py-3 border-b border-slate-100">
+        <h3 class="text-sm font-semibold text-slate-700">Live Event Stream</h3>
+        <button onclick="clearLog()"
+                class="text-xs text-slate-400 hover:text-slate-600 font-medium">Clear</button>
+      </div>
+      <div id="event-log" class="flex-1 overflow-y-auto p-4 space-y-1 font-mono text-xs max-h-[560px] bg-slate-950 rounded-b-xl">
+        <p class="text-slate-500"># Waiting for events…</p>
+      </div>
+    </div>
+  </div>
+
 </div>
+{% endblock %}
 
-<style>
-.monitor-container {
-    display: grid;
-    gap: 2rem;
-    grid-template-columns: 1fr 1fr;
-}
-
-.monitor-controls, .monitor-status {
-    grid-column: span 1;
-}
-
-.monitor-events {
-    grid-column: span 2;
-}
-
-.monitor-actions {
-    display: flex;
-    gap: 1rem;
-}
-
-.primary-btn {
-    background: #27ae60;
-    color: white;
-    border: none;
-    padding: 1rem 2rem;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 1rem;
-    flex: 1;
-}
-
-.secondary-btn {
-    background: #95a5a6;
-    color: white;
-    border: none;
-    padding: 1rem 2rem;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 1rem;
-    flex: 1;
-}
-
-.primary-btn:disabled, .secondary-btn:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-}
-
-.status-indicator {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    margin-bottom: 1.5rem;
-}
-
-.status-dot {
-    width: 12px;
-    height: 12px;
-    border-radius: 50%;
-    background: #e74c3c;
-}
-
-.status-dot.monitoring {
-    background: #27ae60;
-    animation: pulse 2s infinite;
-}
-
-@keyframes pulse {
-    0% { opacity: 1; }
-    50% { opacity: 0.5; }
-    100% { opacity: 1; }
-}
-
-.status-details {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-    gap: 1rem;
-}
-
-.events-controls {
-    display: flex;
-    gap: 1rem;
-    margin-bottom: 1rem;
-}
-
-.events-list {
-    max-height: 400px;
-    overflow-y: auto;
-    background: white;
-    border-radius: 8px;
-    padding: 1rem;
-}
-
-.event-item {
-    padding: 1rem;
-    margin: 0.5rem 0;
-    border-left: 4px solid #3498db;
-    background: #f8f9fa;
-    border-radius: 4px;
-}
-
-.event-item.sensitive {
-    border-left-color: #e74c3c;
-    background: #fdf2f2;
-}
-
-.event-item.warning {
-    border-left-color: #f39c12;
-    background: #fef9e7;
-}
-
-.event-time {
-    font-size: 0.8rem;
-    color: #7f8c8d;
-    margin-bottom: 0.5rem;
-}
-
-.event-message {
-    font-weight: bold;
-    margin-bottom: 0.5rem;
-}
-
-.event-details {
-    font-size: 0.9rem;
-    color: #2c3e50;
-}
-</style>
-
+{% block scripts %}
 <script>
-let monitorInterval = null;
-let eventCount = 0;
-let sensitiveCount = 0;
 let isMonitoring = false;
+let eventCount = 0;
+let mockInterval = null;
 
-function startMonitoring() {
-    const path = document.getElementById('monitor-path').value;
-    const interval = parseInt(document.getElementById('monitor-interval').value);
-    
-    if (!path) {
-        alert('Please enter a path to monitor');
-        return;
+function startMonitor() {
+  const path = document.getElementById('watch-path').value.trim();
+  if (!path) { toast('Enter a directory path', 'warning'); return; }
+
+  fetch('/api/monitor/start', {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ path }),
+  }).then(r => r.json()).then(d => {
+    if (d.success) {
+      isMonitoring = true;
+      document.getElementById('monitor-status').textContent = 'Monitoring';
+      document.getElementById('monitor-status').className = 'font-medium text-green-600';
+      document.getElementById('watching-path').textContent = path;
+      document.getElementById('start-btn').disabled = true;
+      document.getElementById('start-btn').className = 'w-full py-2.5 bg-slate-200 text-slate-400 text-sm font-semibold rounded-lg cursor-not-allowed';
+      document.getElementById('stop-btn').disabled = false;
+      document.getElementById('stop-btn').className = 'w-full py-2.5 bg-red-500 hover:bg-red-600 text-white text-sm font-semibold rounded-lg transition-colors';
+      logEvent('system', `Started monitoring: ${path}`);
+      toast('Monitoring started', 'success');
+      startMockEvents();
     }
-    
-    // Update UI
-    document.getElementById('start-monitor').disabled = true;
-    document.getElementById('stop-monitor').disabled = false;
-    document.getElementById('status-dot').classList.add('monitoring');
-    document.getElementById('status-text').textContent = 'Monitoring Active';
-    
-    isMonitoring = true;
-    
-    // Simulate monitoring (in real implementation, this would use WebSockets or SSE)
-    monitorInterval = setInterval(() => {
-        simulateFileCheck(path);
-    }, interval);
-    
-    addEvent('MONITOR_START', `Started monitoring: ${path}`, 'info');
+  }).catch(() => toast('Failed to start monitor', 'error'));
 }
 
-function stopMonitoring() {
-    if (monitorInterval) {
-        clearInterval(monitorInterval);
-        monitorInterval = null;
-    }
-    
-    // Update UI
-    document.getElementById('start-monitor').disabled = false;
-    document.getElementById('stop-monitor').disabled = true;
-    document.getElementById('status-dot').classList.remove('monitoring');
-    document.getElementById('status-text').textContent = 'Not Monitoring';
-    
-    isMonitoring = false;
-    
-    addEvent('MONITOR_STOP', 'Monitoring stopped', 'info');
+function stopMonitor() {
+  isMonitoring = false;
+  clearInterval(mockInterval);
+  document.getElementById('monitor-status').textContent = 'Idle';
+  document.getElementById('monitor-status').className = 'font-medium text-slate-400';
+  document.getElementById('start-btn').disabled = false;
+  document.getElementById('start-btn').className = 'w-full py-2.5 bg-green-500 hover:bg-green-600 text-white text-sm font-semibold rounded-lg transition-colors';
+  document.getElementById('stop-btn').disabled = true;
+  document.getElementById('stop-btn').className = 'w-full py-2.5 bg-slate-200 text-slate-400 text-sm font-semibold rounded-lg cursor-not-allowed';
+  logEvent('system', 'Monitoring stopped');
+  toast('Monitoring stopped', 'info');
 }
 
-function simulateFileCheck(path) {
-    // In a real implementation, this would make an API call to check for changes
-    const events = [
-        { type: 'FILE_CREATE', message: 'New file detected', path: `${path}/document.txt`, sensitive: false },
-        { type: 'FILE_MODIFY', message: 'File modified', path: `${path}/config.json`, sensitive: true },
-        { type: 'FILE_DELETE', message: 'File deleted', path: `${path}/temp.log`, sensitive: false }
-    ];
-    
-    // Randomly pick an event to simulate
-    const randomEvent = events[Math.floor(Math.random() * events.length)];
-    
-    // Only add event sometimes to avoid spam
-    if (Math.random() > 0.7) {
-        addEvent(randomEvent.type, randomEvent.message, randomEvent.sensitive ? 'sensitive' : 'info', randomEvent.path);
-        
-        // Update counters
-        eventCount++;
-        document.getElementById('changes-detected').textContent = eventCount;
-        
-        if (randomEvent.sensitive) {
-            sensitiveCount++;
-            document.getElementById('monitor-sensitive').textContent = sensitiveCount;
-        }
-    }
+function logEvent(type, message) {
+  const log = document.getElementById('event-log');
+  const ts  = new Date().toISOString();
+  const COLOR = { system:'text-slate-400', write:'text-yellow-400', read:'text-blue-400',
+                  create:'text-green-400', delete:'text-red-400', alert:'text-red-500 font-bold' };
+  const el = document.createElement('p');
+  el.className = COLOR[type] || 'text-slate-300';
+  el.textContent = `[${ts}] [${type.toUpperCase().padEnd(6)}] ${message}`;
+  log.appendChild(el);
+  log.scrollTop = log.scrollHeight;
+  eventCount++;
+  document.getElementById('event-count').textContent = eventCount;
 }
 
-function addEvent(type, message, level = 'info', details = '') {
-    const eventsList = document.getElementById('events-list');
-    const timestamp = new Date().toLocaleTimeString();
-    
-    const eventItem = document.createElement('div');
-    eventItem.className = `event-item ${level}`;
-    eventItem.innerHTML = `
-        <div class="event-time">${timestamp}</div>
-        <div class="event-message">${message}</div>
-        ${details ? `<div class="event-details">${details}</div>` : ''}
-    `;
-    
-    // Add to top of list
-    eventsList.insertBefore(eventItem, eventsList.firstChild);
-    
-    // Remove empty state if it exists
-    const emptyState = eventsList.querySelector('.empty-state');
-    if (emptyState) {
-        emptyState.remove();
-    }
-    
-    // Limit to 50 events
-    if (eventsList.children.length > 50) {
-        eventsList.removeChild(eventsList.lastChild);
-    }
+function clearLog() {
+  document.getElementById('event-log').innerHTML = '<p class="text-slate-500"># Log cleared</p>';
+  eventCount = 0;
+  document.getElementById('event-count').textContent = 0;
 }
 
-function clearEvents() {
-    document.getElementById('events-list').innerHTML = 
-        '<div class="empty-state">No events yet. Start monitoring to see file changes.</div>';
-    eventCount = 0;
-    sensitiveCount = 0;
-    document.getElementById('changes-detected').textContent = '0';
-    document.getElementById('monitor-sensitive').textContent = '0';
+const MOCK = [
+  ['read',   'Process read file: /home/user/documents/report.docx'],
+  ['write',  'File modified: /tmp/config.yaml'],
+  ['create', 'New file created: /home/user/downloads/invoice.pdf'],
+  ['read',   'Process read file: /etc/hosts'],
+  ['alert',  'SENSITIVE DATA: credit_card pattern detected in /home/user/data.csv'],
+  ['write',  'File modified: /home/user/.bashrc'],
+  ['delete', 'File deleted: /tmp/temp_file.txt'],
+];
+let mockIdx = 0;
+function startMockEvents() {
+  mockInterval = setInterval(() => {
+    if (!isMonitoring) return;
+    const [type, msg] = MOCK[mockIdx % MOCK.length];
+    logEvent(type, msg);
+    mockIdx++;
+  }, 2200);
 }
-
-function exportEvents() {
-    const events = document.getElementById('events-list').innerHTML;
-    const blob = new Blob([events], { type: 'text/html' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `monitor_events_${new Date().toISOString().split('T')[0]}.html`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-}
-
-// Event listeners
-document.getElementById('start-monitor').addEventListener('click', startMonitoring);
-document.getElementById('stop-monitor').addEventListener('click', stopMonitoring);
-
-// Initialize
-document.addEventListener('DOMContentLoaded', function() {
-    document.getElementById('files-monitored').textContent = '0';
-    document.getElementById('changes-detected').textContent = '0';
-    document.getElementById('monitor-sensitive').textContent = '0';
-});
 </script>
 {% endblock %}
